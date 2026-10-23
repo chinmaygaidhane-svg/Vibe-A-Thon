@@ -16,6 +16,7 @@ import operationsRoutes from './routes/operationsRoutes.js';
 
 import { runGhostRecoveryCheck } from './services/ghostRecoveryService.js';
 import { runExpiryCheck } from './services/expiryService.js';
+import { runTrafficMonitorJob } from './services/trafficDelayService.js';
 
 // Initialize SQLite Database schema
 initDatabase();
@@ -125,8 +126,19 @@ setInterval(() => {
   }
 }, EXPIRY_JOB_INTERVAL_MS);
 
+// 3. Traffic and delay monitoring job every 30 seconds (Update 3)
+const TRAFFIC_JOB_INTERVAL_MS = 30 * 1000;
+setInterval(() => {
+  try {
+    runTrafficMonitorJob(io);
+  } catch (err) {
+    console.error('Traffic delay monitor job error:', err.message);
+  }
+}, TRAFFIC_JOB_INTERVAL_MS);
+
 server.listen(PORT, () => {
   console.log(`🚀 AidFlow AI Server running at http://localhost:${PORT}`);
   console.log(`⏱️ Ghost reservation recovery job running every 15s`);
   console.log(`⏱️ Expiry monitor job running every 30s`);
+  console.log(`⏱️ Traffic and risk monitor job running every 30s`);
 });

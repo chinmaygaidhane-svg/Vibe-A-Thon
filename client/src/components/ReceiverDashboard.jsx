@@ -21,7 +21,7 @@ import {
   RefreshCw,
   Info
 } from 'lucide-react';
-import { EmptyState, DonationCard, Button, StatusPill, CountdownTimer } from '../ui';
+import { EmptyState, DonationCard, Button, StatusPill, CountdownTimer, AlertBanner } from '../ui';
 
 export default function ReceiverDashboard() {
   const { user, token } = useAuth();
@@ -198,6 +198,35 @@ export default function ReceiverDashboard() {
       }
     } catch {
       alert('Error confirming receipt');
+    }
+  const handleReportConcern = async (del) => {
+    const asgnId = del.assignmentId || del.assignments?.[0]?.id;
+    if (!asgnId) {
+      alert('No active assignment ID found to report concern for.');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/assignments/${asgnId}/report-concern`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ notes: 'Receiver requested immediate route and ETA re-check due to delay.' })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        addToast({
+          title: 'Delivery Concern Logged',
+          message: `ETA re-evaluated to ~${data.eta || del.deliveryETA}m (${data.risk_level || 'ON_TRACK'}). Delivery continues uninterrupted.`,
+          type: 'info'
+        });
+        fetchRequests();
+      } else {
+        alert(data.error || 'Failed to report concern');
+      }
+    } catch {
+      alert('Error reporting delivery concern');
     }
   };
 
@@ -445,19 +474,88 @@ export default function ReceiverDashboard() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Button
+                      id={`btn-report-concern-${del.id}`}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleReportConcern(del)}
+                      style={{ fontSize: '0.78rem' }}
+                    >
+                      <AlertTriangle size={14} /> Report a concern
+                    </Button>
                     <span style={{
                       padding: '6px 14px',
                       borderRadius: '999px',
                       fontSize: '0.84rem',
                       fontWeight: 700,
-                      background: 'rgba(245, 158, 11, 0.2)',
-                      color: '#fbbf24',
-                      border: '1px solid rgba(245, 158, 11, 0.4)'
+                      background: del.riskLevel === 'WILL_MISS' ? 'rgba(220, 38, 38, 0.2)' : del.riskLevel === 'AT_RISK' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(22, 163, 74, 0.15)',
+                      color: del.riskLevel === 'WILL_MISS' ? '#dc2626' : del.riskLevel === 'AT_RISK' ? '#d97706' : '#16a34a',
+                      border: `1px solid ${del.riskLevel === 'WILL_MISS' ? '#fca5a5' : del.riskLevel === 'AT_RISK' ? '#fcd34d' : '#86efac'}`
                     }}>
-                      Status: {del.assignmentStatus}
+                      Status: {del.assignmentStatus} • {del.riskLevel || 'ON_TRACK'}
                     </span>
                   </div>
                 </div>
+
+                {/* Delay & Risk Banners */}
+                {(del.riskLevel === 'WILL_MISS' || del.assignmentStatus === 'EXPIRING') && (
+                  <AlertBanner
+                    type="critical"
+                    title="🚨 Severe Route Delay — Safe Deadline at Risk"
+                    message={`Delivery ETA is ~${del.deliveryETA}m (${del.riskLevel}). Safe use margin elapsed. Automated emergency rerouting or recovery is active.`}
+                  />
+                )}
+                {del.riskLevel === 'AT_RISK' && (
+                  <AlertBanner
+                    type="warning"
+                    title="⚠️ Route Traffic Delay"
+                    message={`Delivery ETA has increased to ~${del.deliveryETA}m (AT RISK — margin to safe-use deadline is under 10 minutes).`}
+                  />
+                )}
+                {del.isStuck && (
+                  <AlertBanner
+                    type="warning"
+                    title="⚠️ Rider Delayed in Traffic"
+                    message={`Rider is held up in traffic: ${del.stuckReason || 'Traffic congestion'}. Route telemetry and ETA have been dynamically re-evaluated.`}
+                  />
+                )}
+
+                {/* Handover Delivery Verification Code */}
+                {del.deliveryCode && (
+                  <div style={{
+                    background: '#EEF2FF',
+                    border: '1px solid #C7D2FE',
+                    borderRadius: '12px',
+                    padding: '12px 18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Handover Delivery Code
+                      </span>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.84rem', color: '#1E293B' }}>
+                        Share this 4-digit code with the rider when they arrive at the shelter:
+                      </p>
+                    </div>
+                    <div style={{
+                      fontFamily: 'monospace',
+                      fontSize: '1.5rem',
+                      fontWeight: 800,
+                      letterSpacing: '6px',
+                      background: '#FFFFFF',
+                      color: '#4F46E5',
+                      padding: '6px 16px',
+                      borderRadius: '8px',
+                      border: '2px dashed #818CF8'
+                    }}>
+                      {del.deliveryCode}
+                    </div>
+                  </div>
+                )}
 
                 {/* Status Timeline */}
                 <StatusTimeline status={del.assignmentStatus} />

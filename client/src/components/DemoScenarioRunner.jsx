@@ -143,6 +143,42 @@ export default function DemoScenarioRunner({ onActionComplete }) {
     }
   };
 
+  const handleTrafficDelay = async (minutes = 15) => {
+    setLoadingAction(true);
+    try {
+      const asgnId = await getActiveAssignmentId();
+      if (!asgnId) {
+        alert('No active assignment found to simulate delay on. First create an in-transit delivery!');
+        return;
+      }
+
+      const res = await fetch('/simulate/traffic-delay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assignmentId: asgnId,
+          minutes,
+          reason: 'Severe traffic congestion on arterial bypass'
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        addToast({
+          title: `🚦 Traffic Delay (+${minutes}m) Added`,
+          message: data.message || `Risk level is now ${data.risk_level}`,
+          type: data.risk_level === 'WILL_MISS' ? 'critical' : 'warning'
+        });
+        if (onActionComplete) onActionComplete();
+      } else {
+        alert(data.error || 'Failed to simulate traffic delay');
+      }
+    } catch {
+      alert('Error simulating traffic delay');
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
   return (
     <div className="demo-bar" id="demo-scenario-runner" style={{
       background: 'rgba(15, 23, 42, 0.95)',
@@ -241,6 +277,17 @@ export default function DemoScenarioRunner({ onActionComplete }) {
           title="Fast-forward time 30 mins to trigger expiry alerts"
         >
           <Clock size={13} /> Fast-Forward (+30m)
+        </button>
+
+        <button
+          id="btn-sim-traffic-delay"
+          onClick={() => handleTrafficDelay(15)}
+          disabled={loadingAction}
+          className="btn btn-sm btn-warning"
+          style={{ padding: '3px 9px', fontSize: '0.76rem' }}
+          title="Simulate severe traffic delay (+15m) triggering risk re-evaluation and auto-redirect"
+        >
+          <AlertTriangle size={13} /> Traffic Delay (+15m)
         </button>
 
         {/* Real-time Socket Indicator */}

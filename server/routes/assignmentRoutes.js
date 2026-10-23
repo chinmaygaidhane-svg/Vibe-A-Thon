@@ -112,6 +112,41 @@ router.post('/:id/status', authenticate, requireRole('rider'), (req, res) => {
     // Update donation status to PICKED_UP
     db.prepare(`UPDATE donations SET status = 'PICKED_UP' WHERE id = ?`).run(asgn.donation_id);
   } else if (normalizedStatus === 'DELIVERED') {
+    // Safety guard: if current time is past safe_until, block Mark Delivered
+    const donation = db.prepare('SELECT safe_until, name FROM donations WHERE id = ?').get(asgn.donation_id);
+    if (donation && new Date(donation.safe_until).getTime() <= Date.now()) {
+      db.prepare(`
+        UPDATE assignments
+        SET status = 'EXPIRED_IN_TRANSIT', risk_level = 'WILL_MISS', last_eta_update = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(id);
+
+      logEvent('DELIVERY_BLOCKED_EXPIRED', `Safety rule violation blocked: Delivery attempt for assignment ${id} (${donation.name}) is past safe-use deadline (${donation.safe_until}). Marked EXPIRED_IN_TRANSIT.`, {
+        assignmentId: id,
+        donationId: asgn.donation_id,
+        safeUntil: donation.safe_until
+      });
+
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('assignment.updated', {
+          assignmentId: id,
+          status: 'EXPIRED_IN_TRANSIT',
+          risk_level: 'WILL_MISS'
+        });
+        io.emit('alert.urgent', {
+          type: 'critical',
+          title: '⚠️ Food Safety Deadline Elapsed',
+          message: `Delivery for "${donation.name}" has expired in transit. Do not serve. Dispose safely.`,
+          assignmentId: id
+        });
+      }
+
+      return res.status(400).json({
+        error: 'Past safe-use deadline: do not serve. Dispose safely.'
+      });
+    }
+
     query += ', delivered_at = ?, route_progress = 1.0';
     params.push(nowIso);
 
@@ -139,6 +174,34 @@ router.post('/:id/status', authenticate, requireRole('rider'), (req, res) => {
   }
 
   res.json({ message: `Assignment status updated to ${normalizedStatus}`, status: normalizedStatus });
+});
+
+// POST /api/assignments/:id/stuck (Rider reports stuck in traffic)
+router.post('/:id/stuck', authenticate, requireRole('rider'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason = 'Heavy traffic congestion', delayMinutes = 15 } = req.body;
+    const { reportRiderStuck } = await import('../services/trafficDelayService.js');
+    const io = req.app.get('io');
+    const result = reportRiderStuck({ assignmentId: id, reason, delayMinutes, io });
+    res.json({ message: 'Traffic delay reported and route re-evaluated.', ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/assignments/:id/report-concern (Receiver reports concern)
+router.post('/:id/report-concern', authenticate, requireRole('receiver'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { notes = 'Delivery seems delayed' } = req.body;
+    const { reportReceiverConcern } = await import('../services/trafficDelayService.js');
+    const io = req.app.get('io');
+    const result = reportReceiverConcern({ assignmentId: id, notes, io });
+    res.json({ message: 'Delivery concern logged and ETA rechecked.', ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // POST /api/assignments/:id/ping (Heartbeat)

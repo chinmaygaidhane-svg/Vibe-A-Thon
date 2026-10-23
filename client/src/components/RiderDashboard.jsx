@@ -21,6 +21,7 @@ import {
   Check,
   Inbox
 } from 'lucide-react';
+import { Modal, Button, AlertBanner } from '../ui';
 
 export default function RiderDashboard() {
   const { user, token } = useAuth();
@@ -32,6 +33,12 @@ export default function RiderDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Stuck in traffic state
+  const [showStuckModal, setShowStuckModal] = useState(false);
+  const [stuckReason, setStuckReason] = useState('Heavy traffic congestion on main route');
+  const [stuckDelayMinutes, setStuckDelayMinutes] = useState(15);
+  const [submittingStuck, setSubmittingStuck] = useState(false);
 
   const fetchRequests = async () => {
     try {
@@ -158,6 +165,42 @@ export default function RiderDashboard() {
       // ignore
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleReportStuck = async () => {
+    if (!activeAssignment) return;
+    const asgnId = activeAssignment.assignmentId || activeAssignment.assignments?.[0]?.id;
+    if (!asgnId) return;
+    setSubmittingStuck(true);
+    try {
+      const res = await fetch(`/api/assignments/${asgnId}/stuck`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          reason: stuckReason,
+          delayMinutes: parseInt(stuckDelayMinutes) || 15
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        addToast({
+          title: 'Traffic Delay Logged',
+          message: data.message || `Risk level evaluated to ${data.risk_level}`,
+          type: data.risk_level === 'WILL_MISS' ? 'critical' : 'warning'
+        });
+        setShowStuckModal(false);
+        fetchRequests();
+      } else {
+        alert(data.error || 'Failed to report delay');
+      }
+    } catch {
+      alert('Error reporting traffic delay');
+    } finally {
+      setSubmittingStuck(false);
     }
   };
 
@@ -385,6 +428,16 @@ export default function RiderDashboard() {
                   {activeAssignment.assignmentStatus === 'IN_TRANSIT' && (
                     <>
                       <button
+                        id="btn-report-stuck"
+                        onClick={() => setShowStuckModal(true)}
+                        disabled={actionLoading}
+                        className="btn btn-warning"
+                        style={{ background: '#d97706', borderColor: '#b45309' }}
+                      >
+                        <AlertTriangle size={15} /> Stuck in traffic / delayed
+                      </button>
+
+                      <button
                         id="btn-advance-rider-step"
                         onClick={handleAdvanceSimulation}
                         disabled={actionLoading}
@@ -393,14 +446,28 @@ export default function RiderDashboard() {
                         <FastForward size={15} /> Simulate Route Movement (+25%)
                       </button>
 
-                      <button
-                        id="btn-mark-delivered"
-                        onClick={() => handleUpdateStatus(activeAssignment.id, 'delivered')}
-                        disabled={actionLoading}
-                        className="btn btn-primary"
-                      >
-                        <CheckCircle size={15} /> 4. Mark Delivered at Destination
-                      </button>
+                      {activeAssignment.safeUseDeadline && new Date(activeAssignment.safeUseDeadline).getTime() <= Date.now() ? (
+                        <div style={{
+                          background: '#fef2f2',
+                          border: '1px solid #f87171',
+                          borderRadius: '8px',
+                          padding: '10px 14px',
+                          color: '#b91c1c',
+                          fontSize: '0.84rem',
+                          fontWeight: 700
+                        }}>
+                          ⚠️ Past safe-use deadline: do not serve. Dispose safely. Delivery blocked.
+                        </div>
+                      ) : (
+                        <button
+                          id="btn-mark-delivered"
+                          onClick={() => handleUpdateStatus(activeAssignment.id, 'delivered')}
+                          disabled={actionLoading}
+                          className="btn btn-primary"
+                        >
+                          <CheckCircle size={15} /> 4. Mark Delivered at Destination
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
@@ -730,6 +797,61 @@ export default function RiderDashboard() {
           )}
         </div>
       )}
+
+      {/* Stuck in Traffic Modal */}
+      <Modal
+        isOpen={showStuckModal}
+        onClose={() => setShowStuckModal(false)}
+        title="Report Traffic Congestion / Delay"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <p style={{ fontSize: '0.88rem', color: '#64748B', margin: 0 }}>
+            Report road delay or congestion. AidFlow will recalculate mission ETA and automatically alert dispatch, donor, and the destination shelter.
+          </p>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+              Reason for Delay
+            </label>
+            <input
+              type="text"
+              className="form-input"
+              value={stuckReason}
+              onChange={e => setStuckReason(e.target.value)}
+              placeholder="e.g. Signal outage, waterlogging, accident detour"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '6px' }}>
+              Estimated Added Delay (Minutes)
+            </label>
+            <input
+              type="number"
+              min="5"
+              max="120"
+              className="form-input"
+              value={stuckDelayMinutes}
+              onChange={e => setStuckDelayMinutes(e.target.value)}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
+            <Button variant="ghost" onClick={() => setShowStuckModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="warning"
+              onClick={handleReportStuck}
+              loading={submittingStuck}
+            >
+              Submit Traffic Delay
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

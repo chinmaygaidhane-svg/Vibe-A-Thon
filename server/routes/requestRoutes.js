@@ -106,10 +106,28 @@ router.get('/', authenticate, (req, res) => {
       pickupLng: reqItem.pickup_lng || 73.8425,
       currentLat: firstAssign?.current_lat || reqItem.pickup_lat || 18.5284,
       currentLng: firstAssign?.current_lng || reqItem.pickup_lng || 73.8425,
-      pickupETA: 10,
-      deliveryETA: 15,
+      assignmentId: firstAssign?.id || null,
+      pickupETA: firstAssign?.eta ? Math.max(5, Math.floor(firstAssign.eta / 2)) : 10,
+      deliveryETA: firstAssign?.eta ?? 15,
+      riskLevel: firstAssign?.risk_level || 'ON_TRACK',
+      isStuck: Boolean(firstAssign?.is_stuck),
+      stuckReason: firstAssign?.stuck_reason || null,
       riderVehicle: firstAssign?.vehicle_type || 'Two-Wheeler',
-      assignments,
+      assignments: assignments.map(a => {
+        // Strip sensitive codes from rider/public views
+        const sanitized = { ...a };
+        if (user.role === 'rider') {
+          delete sanitized.pickup_code;
+          delete sanitized.delivery_code;
+        } else if (user.role === 'receiver') {
+          delete sanitized.pickup_code;
+        } else if (user.role === 'donor') {
+          delete sanitized.delivery_code;
+        }
+        return sanitized;
+      }),
+      pickupCode: user.role === 'donor' ? firstAssign?.pickup_code : undefined,
+      deliveryCode: user.role === 'receiver' ? firstAssign?.delivery_code : undefined,
       assignedRiderId: firstAssign?.rider_id || null,
       assignedRiderName: firstAssign?.rider_name || null,
       assignmentStatus: status,
@@ -156,6 +174,101 @@ router.post('/:id/confirm-receipt', authenticate, requireRole('receiver'), (req,
   }
 
   res.json({ message: 'Receipt confirmed successfully!', requestId: id });
+});
+
+// POST /api/requests/:id/status (Rider status updates via requestId)
+router.post('/:id/status', authenticate, requireRole('rider'), (req, res) => {
+  const { id } = req.params;
+  const { status, code } = req.body;
+
+  const assignment = db.prepare(`
+    SELECT * FROM assignments
+    WHERE (request_id = ? OR id = ?) AND (rider_id = ? OR rider_id IS NULL)
+  `).get(id, id, req.user.id);
+
+  if (!assignment) {
+    return res.status(404).json({ error: 'Assignment not found for this request or unauthorized.' });
+  }
+
+  // Forward to assignment status logic
+  const validStatuses = ['HEADING_TO_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED'];
+  const normalizedStatus = status.toUpperCase().replace(/\s+/g, '_');
+
+  if (!validStatuses.includes(normalizedStatus)) {
+    return res.status(400).json({
+      error: `Invalid status '${status}'. Must be one of [${validStatuses.join(', ')}].`
+    });
+  }
+
+  const nowIso = new Date().toISOString();
+  let query = 'UPDATE assignments SET status = ?, last_rider_ping = ?';
+  const params = [normalizedStatus, nowIso];
+
+  if (normalizedStatus === 'PICKED_UP') {
+    query += ', picked_up_at = ?';
+    params.push(nowIso);
+    db.prepare(`UPDATE donations SET status = 'PICKED_UP' WHERE id = ?`).run(assignment.donation_id);
+  } else if (normalizedStatus === 'DELIVERED') {
+    const donation = db.prepare('SELECT safe_until, name FROM donations WHERE id = ?').get(assignment.donation_id);
+    if (donation && new Date(donation.safe_until).getTime() <= Date.now()) {
+      db.prepare(`
+        UPDATE assignments
+        SET status = 'EXPIRED_IN_TRANSIT', risk_level = 'WILL_MISS', last_eta_update = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(assignment.id);
+
+      logEvent('DELIVERY_BLOCKED_EXPIRED', `Safety rule violation blocked: Delivery attempt for assignment ${assignment.id} (${donation.name}) is past safe-use deadline (${donation.safe_until}). Marked EXPIRED_IN_TRANSIT.`, {
+        assignmentId: assignment.id,
+        donationId: assignment.donation_id,
+        safeUntil: donation.safe_until
+      });
+
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('assignment.updated', {
+          assignmentId: assignment.id,
+          status: 'EXPIRED_IN_TRANSIT',
+          risk_level: 'WILL_MISS'
+        });
+        io.emit('alert.urgent', {
+          type: 'critical',
+          title: '⚠️ Food Safety Deadline Elapsed',
+          message: `Delivery for "${donation.name}" has expired in transit. Do not serve. Dispose safely.`,
+          assignmentId: assignment.id
+        });
+      }
+
+      return res.status(400).json({
+        error: 'Past safe-use deadline: do not serve. Dispose safely.'
+      });
+    }
+
+    query += ', delivered_at = ?, route_progress = 1.0';
+    params.push(nowIso);
+    db.prepare(`UPDATE requests SET status = 'DELIVERED' WHERE id = ?`).run(assignment.request_id);
+  }
+
+  query += ' WHERE id = ?';
+  params.push(assignment.id);
+  db.prepare(query).run(...params);
+
+  logEvent('ASSIGNMENT_STATUS_UPDATED', `Assignment ${assignment.id} (request ${id}) updated to ${normalizedStatus} by rider ${req.user.name}`, {
+    assignmentId: assignment.id,
+    requestId: id,
+    status: normalizedStatus
+  });
+
+  const io = req.app.get('io');
+  if (io) {
+    io.emit('assignment.updated', {
+      assignmentId: assignment.id,
+      requestId: id,
+      status: normalizedStatus,
+      riderId: req.user.id
+    });
+  }
+
+  res.json({ message: `Assignment status updated to ${normalizedStatus}`, status: normalizedStatus });
 });
 
 export default router;

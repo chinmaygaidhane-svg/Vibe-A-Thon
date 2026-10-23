@@ -114,7 +114,7 @@ export function initDatabase() {
       request_id TEXT NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
       rider_id TEXT REFERENCES users(id) ON DELETE SET NULL,
       quantity INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING', 'ACCEPTED', 'HEADING_TO_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED', 'RELEASED')),
+      status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING', 'ACCEPTED', 'HEADING_TO_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED', 'RELEASED', 'EXPIRING', 'EXPIRED_IN_TRANSIT')),
       accepted_at DATETIME,
       picked_up_at DATETIME,
       delivered_at DATETIME,
@@ -151,6 +151,80 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_requests_receiver ON requests(receiver_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
   `);
+
+  // Column migrations for Update 3, 4, 5
+  const migrationCols = [
+    "ALTER TABLE assignments ADD COLUMN eta INTEGER DEFAULT 15",
+    "ALTER TABLE assignments ADD COLUMN risk_level TEXT DEFAULT 'ON_TRACK'",
+    "ALTER TABLE assignments ADD COLUMN last_eta_update DATETIME",
+    "ALTER TABLE assignments ADD COLUMN last_progress_update DATETIME",
+    "ALTER TABLE assignments ADD COLUMN is_stuck INTEGER DEFAULT 0",
+    "ALTER TABLE assignments ADD COLUMN stuck_reason TEXT",
+    "ALTER TABLE assignments ADD COLUMN simulated_delay_mins INTEGER DEFAULT 0",
+    "ALTER TABLE assignments ADD COLUMN pickup_code TEXT",
+    "ALTER TABLE assignments ADD COLUMN delivery_code TEXT",
+    "ALTER TABLE assignments ADD COLUMN failed_code_attempts INTEGER DEFAULT 0",
+    "ALTER TABLE assignments ADD COLUMN code_locked_until DATETIME",
+    "ALTER TABLE rider_profiles ADD COLUMN accepted_count INTEGER DEFAULT 0",
+    "ALTER TABLE rider_profiles ADD COLUMN completed_count INTEGER DEFAULT 0",
+    "ALTER TABLE rider_profiles ADD COLUMN timed_out_count INTEGER DEFAULT 0",
+    "ALTER TABLE rider_profiles ADD COLUMN late_count INTEGER DEFAULT 0",
+    "ALTER TABLE rider_profiles ADD COLUMN cancelled_count INTEGER DEFAULT 0",
+    "ALTER TABLE rider_profiles ADD COLUMN reliability_score INTEGER DEFAULT 70"
+  ];
+  for (const sql of migrationCols) {
+    try {
+      db.prepare(sql).run();
+    } catch {
+      // Column already exists, safe to ignore
+    }
+  }
+
+  // Ensure assignments table check constraint includes EXPIRING, EXPIRED_IN_TRANSIT
+  try {
+    const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='assignments'").get();
+    if (tableInfo && tableInfo.sql && !tableInfo.sql.includes('EXPIRED_IN_TRANSIT')) {
+      db.exec(`
+        PRAGMA foreign_keys=OFF;
+        CREATE TABLE assignments_migrated (
+          id TEXT PRIMARY KEY,
+          donation_id TEXT NOT NULL REFERENCES donations(id) ON DELETE CASCADE,
+          request_id TEXT NOT NULL REFERENCES requests(id) ON DELETE CASCADE,
+          rider_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+          quantity INTEGER NOT NULL,
+          status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING', 'ACCEPTED', 'HEADING_TO_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED', 'RELEASED', 'EXPIRING', 'EXPIRED_IN_TRANSIT')),
+          accepted_at DATETIME,
+          picked_up_at DATETIME,
+          delivered_at DATETIME,
+          last_rider_ping DATETIME,
+          route_progress REAL NOT NULL DEFAULT 0.0,
+          destination_receiver_id TEXT NOT NULL REFERENCES users(id),
+          redirect_from_receiver_id TEXT,
+          redirect_reason TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          eta INTEGER DEFAULT 15,
+          risk_level TEXT DEFAULT 'ON_TRACK',
+          last_eta_update DATETIME,
+          last_progress_update DATETIME,
+          is_stuck INTEGER DEFAULT 0,
+          stuck_reason TEXT,
+          simulated_delay_mins INTEGER DEFAULT 0,
+          pickup_code TEXT,
+          delivery_code TEXT,
+          failed_code_attempts INTEGER DEFAULT 0,
+          code_locked_until DATETIME
+        );
+        INSERT INTO assignments_migrated SELECT id, donation_id, request_id, rider_id, quantity, status, accepted_at, picked_up_at, delivered_at, last_rider_ping, route_progress, destination_receiver_id, redirect_from_receiver_id, redirect_reason, created_at, COALESCE(eta, 15), COALESCE(risk_level, 'ON_TRACK'), last_eta_update, last_progress_update, COALESCE(is_stuck, 0), stuck_reason, COALESCE(simulated_delay_mins, 0), pickup_code, delivery_code, COALESCE(failed_code_attempts, 0), code_locked_until FROM assignments;
+        DROP TABLE assignments;
+        ALTER TABLE assignments_migrated RENAME TO assignments;
+        CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
+        CREATE INDEX IF NOT EXISTS idx_assignments_rider ON assignments(rider_id);
+        PRAGMA foreign_keys=ON;
+      `);
+    }
+  } catch (err) {
+    // Migration handled
+  }
 }
 
 // Haversine distance in km

@@ -240,4 +240,72 @@ console.log('Test 7: Authentication with Email or Phone Number Tests');
   console.log('  ✓ Login by email, login by phone (+91 format), wrong role rejection, and duplicate phone detection verified');
 }
 
-console.log('\n🎉 ALL 7 CORE BUSINESS LOGIC TESTS PASSED SUCCESSFULLY!\n');
+// TEST 8: Delay and Traffic Handling (Update 3)
+console.log('Test 8: Delay and Traffic Handling Tests');
+{
+  const { recomputeAssignmentETA, attemptAlternativeReroute } = await import('./services/trafficDelayService.js');
+
+  const now = Date.now();
+  // Create a test donation safe for 60 minutes
+  const safeUntilDate = new Date(now + 60 * 60 * 1000).toISOString();
+
+  const testDonId = 'test-don-delay-' + Date.now();
+  const testReqId = 'test-req-delay-' + Date.now();
+  const testAsgnId = 'test-asgn-delay-' + Date.now();
+
+  db.prepare(`
+    INSERT INTO donations (
+      id, donor_id, name, description, category, veg_type, total_quantity, available_quantity, reserved_quantity,
+      unit, prepared_at, safe_until, pickup_lat, pickup_lng, item_type, status
+    )
+    VALUES (?, 'u-donor-1', 'Traffic Test Biryani', 'Testing delay handling', 'cooked_meals', 'non-veg', 50, 0, 0,
+      'servings', CURRENT_TIMESTAMP, ?, 18.5284, 73.8425, 'cooked', 'PICKED_UP')
+  `).run(testDonId, safeUntilDate);
+
+  // Create request for Receiver 1 (Shelter A)
+  db.prepare(`
+    INSERT INTO requests (id, receiver_id, donation_id, requested_quantity, status)
+    VALUES (?, 'u-receiver-1', ?, 25, 'IN_TRANSIT')
+  `).run(testReqId, testDonId);
+
+  // Create assignment for Rider 1 (Rahul)
+  db.prepare(`
+    INSERT INTO assignments (id, request_id, donation_id, rider_id, status, quantity, pickup_code, delivery_code, destination_receiver_id, simulated_delay_mins)
+    VALUES (?, ?, ?, 'u-rider-1', 'IN_TRANSIT', 25, '1111', '2222', 'u-receiver-1', 0)
+  `).run(testAsgnId, testReqId, testDonId);
+
+  // 1. Initial State: travel time ~15 min, safe_until is in 60 min. Margin is 60 - (15 + 5) = 40 min (> 10 min) -> ON_TRACK
+  const initialRes = recomputeAssignmentETA(testAsgnId, null, now);
+  assert.strictEqual(initialRes.risk_level, 'ON_TRACK', 'Initial margin should be ON_TRACK');
+  console.log('  ✓ Initial state computed as ON_TRACK');
+
+  // 2. Add delay of 35 min: total ETA 15 + 35 = 50 min. Margin: 60 - (50 + 5) = 5 min (<= 10 min) -> AT_RISK
+  db.prepare('UPDATE assignments SET simulated_delay_mins = 35 WHERE id = ?').run(testAsgnId);
+  const atRiskRes = recomputeAssignmentETA(testAsgnId, null, now);
+  assert.strictEqual(atRiskRes.risk_level, 'AT_RISK', 'Margin <= 10m should transition to AT_RISK');
+  console.log('  ✓ Traffic delay transition to AT_RISK verified');
+
+  // 3. Add delay of 50 min: total ETA 15 + 50 = 65 min. Margin: 60 - (65 + 5) = -10 min (< 0) -> WILL_MISS
+  db.prepare('UPDATE assignments SET simulated_delay_mins = 50 WHERE id = ?').run(testAsgnId);
+  const willMissRes = recomputeAssignmentETA(testAsgnId, null, now);
+  assert.strictEqual(willMissRes.risk_level, 'WILL_MISS', 'Negative margin should transition to WILL_MISS');
+  console.log('  ✓ Traffic delay transition to WILL_MISS verified');
+
+  // 4. Verify recovery redirection or EXPIRING
+  // If an alternative receiver is reachable in time (e.g. Shelter B or C), redirect occurs
+  if (willMissRes.recoveryResult?.redirected) {
+    assert(willMissRes.recoveryResult.newReceiverId, 'Should redirect to an alternative receiver');
+    console.log(`  ✓ Dynamic reroute: successfully redirected to alternative shelter (id: ${willMissRes.recoveryResult.newReceiverId})`);
+  } else {
+    assert.strictEqual(willMissRes.recoveryResult?.status, 'EXPIRING', 'If no shelter is reachable, status must become EXPIRING');
+    console.log('  ✓ No alternative reachable: status correctly marked EXPIRING with urgent alert');
+  }
+
+  // 5. Test Delivery blocked after safe_until deadline
+  const expiredNow = now + 65 * 60 * 1000; // 65 min later, past safe_until
+  const blockedRes = recomputeAssignmentETA(testAsgnId, null, expiredNow);
+  assert.strictEqual(blockedRes.status, 'EXPIRED_IN_TRANSIT', 'Should set status to EXPIRED_IN_TRANSIT after safe deadline');
+  console.log('  ✓ Delivery after deadline blocked and marked EXPIRED_IN_TRANSIT');
+}
+
+console.log('\n🎉 ALL 8 CORE BUSINESS LOGIC TESTS PASSED SUCCESSFULLY!\n');

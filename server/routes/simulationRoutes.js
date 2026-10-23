@@ -68,4 +68,20 @@ router.post('/fast-forward', (req, res) => {
   }
 });
 
+// POST /simulate/traffic-delay (adds N minutes of delay to a chosen assignment)
+router.post('/traffic-delay', async (req, res) => {
+  try {
+    const { assignmentId, minutes = 15, reason = 'Severe traffic congestion on main arterial' } = req.body;
+    if (!assignmentId) {
+      return res.status(400).json({ error: 'assignmentId is required for traffic delay simulation.' });
+    }
+    const { reportRiderStuck } = await import('../services/trafficDelayService.js');
+    const io = req.app.get('io');
+    const result = reportRiderStuck({ assignmentId, reason, delayMinutes: parseInt(minutes), io });
+    res.json({ message: `Simulated +${minutes}m traffic delay on assignment ${assignmentId}`, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 export default router;
