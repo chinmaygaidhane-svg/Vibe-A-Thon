@@ -1,0 +1,11 @@
+{
+  "name": "aidflow-ai",
+  "version": "1.0.0",
+  "description": "AidFlow AI: Three-Role Authentication and Live Donation Coordination Platform",
+  "private": true,
+  "scripts": {
+    "server": "cd backend && npm run dev",
+    "client": "cd frontend && npm run dev",
+    "start": "node run-all.js"
+  }
+}
