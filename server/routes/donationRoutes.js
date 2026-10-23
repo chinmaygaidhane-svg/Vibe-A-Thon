@@ -22,20 +22,22 @@ router.get('/available', authenticate, requireRole('receiver'), (req, res) => {
     const demandRecords = db.prepare('SELECT * FROM receiver_demand WHERE receiver_id = ?').all(receiverId);
     const now = Date.now();
 
-    // Query active available donations
+    // Query active available and partially reserved donations
     const rawDonations = db.prepare(`
       SELECT d.*, u.name AS donor_name, dp.pickup_address
       FROM donations d
       JOIN users u ON d.donor_id = u.id
       LEFT JOIN donor_profiles dp ON d.donor_id = dp.user_id
-      WHERE d.status = 'AVAILABLE'
+      WHERE (d.status = 'AVAILABLE' OR d.status = 'PARTIALLY_RESERVED')
         AND d.available_quantity > 0
-        AND d.safe_until > datetime('now')
     `).all();
 
-    const feasibleList = [];
+    let feasibleList = [];
 
     for (const don of rawDonations) {
+      const safeUntilMs = new Date(don.safe_until).getTime();
+      if (safeUntilMs <= now) continue;
+
       // 1. Feasibility check: now + pickup_eta + delivery_eta + 5 min safety buffer <= safe_until
       const feas = checkFeasibility({ donation: don, receiver: receiverProfile, now });
       if (!feas.isFeasible) continue;
@@ -44,18 +46,17 @@ router.get('/available', authenticate, requireRole('receiver'), (req, res) => {
       const compat = checkCompatibility({
         donation: don,
         receiver: receiverProfile,
-        requestedQuantity: 1, // checking minimum viability
+        requestedQuantity: 0,
         estimatedArrival: feas.estimatedArrival
       });
       if (!compat.isCompatible) continue;
 
       // 3. Demand check: receiver has remaining demand for this item
-      // If demand records exist for this category, check remaining_demand > 0
       const categoryDemand = demandRecords.find(d => d.item_category === don.category);
       if (categoryDemand && categoryDemand.remaining_demand <= 0) {
         continue;
       }
-      if (receiverProfile.current_demand !== undefined && receiverProfile.current_demand <= 0) {
+      if (!categoryDemand && receiverProfile.current_demand !== undefined && receiverProfile.current_demand <= 0) {
         continue;
       }
 
@@ -83,8 +84,34 @@ router.get('/available', authenticate, requireRole('receiver'), (req, res) => {
       });
     }
 
-    // Sort by least time remaining first
-    feasibleList.sort((a, b) => a.remainingMinutes - b.remainingMinutes);
+    // Apply query filters
+    const { search, category, vegOnly, sort } = req.query;
+
+    if (category && category !== 'all') {
+      feasibleList = feasibleList.filter(d => d.foodCategory === category || d.category === category);
+    }
+
+    if (vegOnly === 'true') {
+      feasibleList = feasibleList.filter(d => d.isVegetarian);
+    }
+
+    if (search) {
+      const s = search.toLowerCase();
+      feasibleList = feasibleList.filter(d =>
+        (d.mealName && d.mealName.toLowerCase().includes(s)) ||
+        (d.donor_name && d.donor_name.toLowerCase().includes(s)) ||
+        (d.description && d.description.toLowerCase().includes(s))
+      );
+    }
+
+    if (sort === 'distance') {
+      feasibleList.sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
+    } else if (sort === 'quantity') {
+      feasibleList.sort((a, b) => (b.availableQuantity || 0) - (a.availableQuantity || 0));
+    } else {
+      // Default: sort by least time remaining first
+      feasibleList.sort((a, b) => a.remainingMinutes - b.remainingMinutes);
+    }
 
     res.json({ donations: feasibleList });
   } catch (err) {

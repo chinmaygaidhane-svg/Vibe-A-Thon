@@ -394,13 +394,14 @@ export default function RiderDashboard() {
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                 gap: '12px',
-                background: 'rgba(255,255,255,0.03)',
+                background: '#F8FAFC',
+                border: '1px solid var(--border-subtle)',
                 padding: '16px',
                 borderRadius: '12px'
               }}>
                 <div>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pickup Restaurant</span>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#34d399' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#059669' }}>
                     🏪 {activeAssignment.donorName}
                   </h4>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -410,7 +411,7 @@ export default function RiderDashboard() {
 
                 <div>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Destination Shelter</span>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#818cf8' }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#4F46E5' }}>
                     🏠 {activeAssignment.receiverName}
                   </h4>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -423,7 +424,7 @@ export default function RiderDashboard() {
                   <h4 style={{ fontSize: '1rem', fontWeight: 800 }}>
                     {activeAssignment.quantityRequested} Servings
                   </h4>
-                  <span style={{ fontSize: '0.75rem', color: '#fbbf24' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#D97706' }}>
                     {activeAssignment.mealName}
                   </span>
                 </div>
@@ -434,8 +435,8 @@ export default function RiderDashboard() {
 
               {/* Delivery Workflow Action Controls */}
               <div style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid var(--border-medium)',
+                background: '#F8FAFC',
+                border: '1px solid var(--border-subtle)',
                 borderRadius: '12px',
                 padding: '16px',
                 display: 'flex',
@@ -574,7 +575,7 @@ export default function RiderDashboard() {
                     <div
                       key={a.id}
                       style={{
-                        background: 'rgba(255,255,255,0.03)',
+                        background: '#F8FAFC',
                         border: '1px solid var(--border-subtle)',
                         borderRadius: '12px',
                         padding: '16px',
@@ -586,7 +587,7 @@ export default function RiderDashboard() {
                       <div>
                         <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{a.mealName}</h4>
                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          Quantity Ordered: <strong style={{ color: '#34d399' }}>{a.quantityRequested} servings</strong>
+                          Quantity Ordered: <strong style={{ color: '#059669' }}>{a.quantityRequested} servings</strong>
                         </span>
                       </div>
 
@@ -596,7 +597,8 @@ export default function RiderDashboard() {
                         gap: '4px',
                         fontSize: '0.78rem',
                         color: 'var(--text-muted)',
-                        background: 'rgba(255,255,255,0.02)',
+                        background: '#FFFFFF',
+                        border: '1px solid var(--border-subtle)',
                         padding: '8px 12px',
                         borderRadius: '8px'
                       }}>
@@ -741,7 +743,8 @@ export default function RiderDashboard() {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '6px',
-                        background: 'rgba(255,255,255,0.03)',
+                        background: '#F8FAFC',
+                        border: '1px solid var(--border-subtle)',
                         padding: '10px',
                         borderRadius: '8px',
                         fontSize: '0.78rem'
@@ -754,7 +757,7 @@ export default function RiderDashboard() {
                         </div>
                         <div className="card-meta-row">
                           <span>🛵 Distance from You:</span>
-                          <strong style={{ color: '#60a5fa' }}>~{don.distanceKm} km ({don.travelTimeMins} mins ride)</strong>
+                          <strong style={{ color: '#2563EB' }}>~{don.distanceKm} km ({don.travelTimeMins} mins ride)</strong>
                         </div>
                         <div className="card-meta-row">
                           <span>📦 Storage Required:</span>
@@ -765,12 +768,12 @@ export default function RiderDashboard() {
                       {/* Status / Order Callout */}
                       {matchingOpenReq ? (
                         <div style={{
-                          background: 'rgba(59, 130, 246, 0.15)',
-                          border: '1px solid rgba(59, 130, 246, 0.35)',
+                          background: '#EFF6FF',
+                          border: '1px solid #BFDBFE',
                           borderRadius: '8px',
                           padding: '10px 12px',
                           fontSize: '0.8rem',
-                          color: '#bfdbfe',
+                          color: '#1E40AF',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '6px'
@@ -779,7 +782,7 @@ export default function RiderDashboard() {
                             <span className="pulsing-dot green"></span>
                             <span>Ordered by {matchingOpenReq.receiverName}!</span>
                           </div>
-                          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                          <span style={{ fontSize: '0.74rem', color: '#64748B' }}>
                             {matchingOpenReq.quantityRequested} servings ordered • Awaiting rider pickup
                           </span>
                           <button
@@ -793,19 +796,19 @@ export default function RiderDashboard() {
                         </div>
                       ) : isAssignedToMe ? (
                         <div style={{
-                          background: 'rgba(16, 185, 129, 0.15)',
-                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                          background: '#ECFDF5',
+                          border: '1px solid #A7F3D0',
                           borderRadius: '8px',
                           padding: '8px 10px',
                           fontSize: '0.78rem',
-                          color: '#6ee7b7',
+                          color: '#065F46',
                           fontWeight: 600
                         }}>
                           🛵 You are currently on delivery mission for this batch.
                         </div>
                       ) : (
                         <div style={{
-                          background: 'rgba(255, 255, 255, 0.04)',
+                          background: '#F8FAFC',
                           border: '1px solid var(--border-subtle)',
                           borderRadius: '8px',
                           padding: '8px 10px',
@@ -823,14 +826,14 @@ export default function RiderDashboard() {
                       <div style={{
                         marginTop: 'auto',
                         paddingTop: '12px',
-                        borderTop: '1px solid rgba(255,255,255,0.08)',
+                        borderTop: '1px solid var(--border-subtle)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between'
                       }}>
                         <div>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Available Servings</span>
-                          <strong style={{ fontSize: '1.15rem', color: '#34d399' }}>{don.availableQuantity}</strong>
+                          <strong style={{ fontSize: '1.15rem', color: '#059669' }}>{don.availableQuantity}</strong>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}> / {don.totalQuantity} total</span>
                         </div>
 
@@ -838,7 +841,8 @@ export default function RiderDashboard() {
                           fontSize: '0.75rem',
                           padding: '4px 8px',
                           borderRadius: '6px',
-                          background: 'rgba(255,255,255,0.05)',
+                          background: '#F1F5F9',
+                          border: '1px solid var(--border-subtle)',
                           color: 'var(--text-muted)'
                         }}>
                           Batch #{don.id}

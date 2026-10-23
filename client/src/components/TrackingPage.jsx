@@ -137,11 +137,11 @@ export default function TrackingPage() {
               <span>Route Progress</span>
               <strong style={{ color: '#38bdf8' }}>{Math.round((assignment.route_progress || 0) * 100)}% Completed</strong>
             </div>
-            <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '999px', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '8px', background: '#E2E8F0', borderRadius: '999px', overflow: 'hidden' }}>
               <div style={{
                 width: `${Math.round((assignment.route_progress || 0) * 100)}%`,
                 height: '100%',
-                background: 'linear-gradient(90deg, #10b981, #38bdf8)',
+                background: 'linear-gradient(90deg, #059669, #2563EB)',
                 transition: 'width 0.4s ease'
               }}></div>
             </div>
@@ -156,18 +156,18 @@ export default function TrackingPage() {
           {/* Redirection Alert if any */}
           {assignment.redirect_reason && (
             <div style={{
-              background: 'rgba(245, 158, 11, 0.15)',
-              border: '1px solid #f59e0b',
+              background: '#FEF3C7',
+              border: '1px solid #FDE68A',
               padding: '12px 16px',
               borderRadius: '10px',
               display: 'flex',
               gap: '10px',
               alignItems: 'flex-start'
             }}>
-              <AlertTriangle size={18} style={{ color: '#f59e0b', flexShrink: 0, marginTop: '2px' }} />
+              <AlertTriangle size={18} style={{ color: '#D97706', flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <strong style={{ fontSize: '0.85rem', color: '#fbbf24' }}>Dynamic In-Transit Redirection</strong>
-                <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#f3f4f6' }}>
+                <strong style={{ fontSize: '0.85rem', color: '#B45309' }}>Dynamic In-Transit Redirection</strong>
+                <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#78350F' }}>
                   {assignment.redirect_reason}
                 </p>
               </div>
@@ -179,26 +179,27 @@ export default function TrackingPage() {
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
-            background: 'rgba(255,255,255,0.02)',
+            background: '#F8FAFC',
+            border: '1px solid var(--border-subtle)',
             padding: '16px',
             borderRadius: '10px',
             fontSize: '0.84rem'
           }}>
             <div>
               <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Pickup Location (Donor)</span>
-              <strong style={{ display: 'block', color: '#34d399' }}>🏪 {assignment.donor_name}</strong>
+              <strong style={{ display: 'block', color: '#059669' }}>🏪 {assignment.donor_name}</strong>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{assignment.pickup_address}</span>
             </div>
 
             <div>
               <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Dropoff Location (Receiver)</span>
-              <strong style={{ display: 'block', color: '#818cf8' }}>🏠 {assignment.receiver_name}</strong>
+              <strong style={{ display: 'block', color: '#4F46E5' }}>🏠 {assignment.receiver_name}</strong>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{assignment.receiver_address}</span>
             </div>
 
             <div>
               <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Assigned Courier</span>
-              <strong style={{ display: 'block', color: '#fbbf24' }}>🛵 {assignment.rider_name || 'Unassigned'}</strong>
+              <strong style={{ display: 'block', color: '#D97706' }}>🛵 {assignment.rider_name || 'Unassigned'}</strong>
             </div>
           </div>
         </div>

@@ -168,7 +168,7 @@ export default function OperationsPage() {
                     <div
                       key={a.id}
                       style={{
-                        background: 'rgba(255,255,255,0.02)',
+                        background: '#F8FAFC',
                         border: '1px solid var(--border-subtle)',
                         borderRadius: '10px',
                         padding: '12px 16px',
@@ -290,10 +290,10 @@ export default function OperationsPage() {
                   key={log.id}
                   style={{
                     background: isUrgent
-                      ? 'rgba(239, 68, 68, 0.1)'
+                      ? '#FEF2F2'
                       : isWarning
-                      ? 'rgba(245, 158, 11, 0.08)'
-                      : 'rgba(255,255,255,0.02)',
+                      ? '#FFFBEB'
+                      : '#F8FAFC',
                     border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
                     padding: '10px 12px',
@@ -305,7 +305,7 @@ export default function OperationsPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <strong style={{
                       fontSize: '0.8rem',
-                      color: isUrgent ? '#f87171' : isWarning ? '#fbbf24' : '#60a5fa'
+                      color: isUrgent ? '#DC2626' : isWarning ? '#D97706' : '#2563EB'
                     }}>
                       {log.event_type}
                     </strong>

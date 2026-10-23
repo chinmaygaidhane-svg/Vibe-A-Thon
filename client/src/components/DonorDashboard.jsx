@@ -295,14 +295,14 @@ export default function DonorDashboard() {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                   gap: '12px',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: '#F8FAFC',
                   padding: '16px',
                   borderRadius: '12px',
                   border: '1px solid var(--border-subtle)'
                 }}>
                   <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Assigned Rider</span>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fcd34d' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#D97706' }}>
                       🛵 {selectedRequest.assignedRiderName || 'Awaiting assignment'}
                     </h4>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -312,7 +312,7 @@ export default function DonorDashboard() {
 
                   <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Target Beneficiary</span>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#a5b4fc' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#4F46E5' }}>
                       🏠 {selectedRequest.receiverName}
                     </h4>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -323,11 +323,11 @@ export default function DonorDashboard() {
                   <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Estimated ETAs</span>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '2px' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#34d399' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#059669' }}>
                         Pickup: ~{selectedRequest.pickupETA}m
                       </span>
                       <span>•</span>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#60a5fa' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#2563EB' }}>
                         Drop: ~{selectedRequest.deliveryETA}m
                       </span>
                     </div>
@@ -337,14 +337,14 @@ export default function DonorDashboard() {
                 {/* In-Transit Redirection Banner if applicable */}
                 {selectedRequest.redirectHistory && selectedRequest.redirectHistory.length > 0 && (
                   <div style={{
-                    background: 'rgba(245, 158, 11, 0.15)',
-                    border: '1px solid rgba(245, 158, 11, 0.4)',
+                    background: '#FEF3C7',
+                    border: '1px solid #FDE68A',
                     padding: '12px 16px',
                     borderRadius: '10px',
                     fontSize: '0.84rem'
                   }}>
-                    <strong style={{ color: '#fbbf24' }}>⚠️ In-Transit Redirection Recorded:</strong>
-                    <p style={{ margin: '4px 0 0', color: '#f3f4f6' }}>
+                    <strong style={{ color: '#B45309' }}>⚠️ In-Transit Redirection Recorded:</strong>
+                    <p style={{ margin: '4px 0 0', color: '#78350F' }}>
                       {selectedRequest.deliveryNotes}
                     </p>
                   </div>
@@ -371,7 +371,7 @@ export default function DonorDashboard() {
                 <div
                   key={d.id}
                   style={{
-                    background: 'rgba(255,255,255,0.03)',
+                    background: '#F8FAFC',
                     border: '1px solid var(--border-subtle)',
                     borderRadius: '12px',
                     padding: '16px',
@@ -387,7 +387,7 @@ export default function DonorDashboard() {
                           width: '10px',
                           height: '10px',
                           borderRadius: '2px',
-                          background: d.isVegetarian ? '#10b981' : '#f43f5e',
+                          background: d.isVegetarian ? '#16a34a' : '#dc2626',
                           display: 'inline-block'
                         }} title={d.isVegetarian ? 'Vegetarian' : 'Non-Vegetarian'} />
                         <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>{d.mealName}</h4>
@@ -402,7 +402,7 @@ export default function DonorDashboard() {
                     </span>
                   </div>
 
-                  <p style={{ fontSize: '0.82rem', color: '#d1d5db', margin: 0 }}>
+                  <p style={{ fontSize: '0.82rem', color: '#475569', margin: 0 }}>
                     {d.description}
                   </p>
 
@@ -412,11 +412,11 @@ export default function DonorDashboard() {
                     justifyContent: 'space-between',
                     fontSize: '0.8rem',
                     paddingTop: '8px',
-                    borderTop: '1px solid rgba(255,255,255,0.06)'
+                    borderTop: '1px solid var(--border-subtle)'
                   }}>
                     <div>
                       <span style={{ color: 'var(--text-muted)' }}>Available: </span>
-                      <strong style={{ color: '#34d399' }}>{d.availableQuantity}</strong>
+                      <strong style={{ color: '#059669' }}>{d.availableQuantity}</strong>
                       <span style={{ color: 'var(--text-muted)' }}> / {d.totalQuantity} servings</span>
                     </div>
 
@@ -425,8 +425,9 @@ export default function DonorDashboard() {
                       borderRadius: '6px',
                       fontSize: '0.72rem',
                       fontWeight: 700,
-                      background: d.status === 'AVAILABLE' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
-                      color: d.status === 'AVAILABLE' ? '#34d399' : '#a5b4fc'
+                      background: d.status === 'AVAILABLE' ? '#ECFDF5' : '#EEF2FF',
+                      color: d.status === 'AVAILABLE' ? '#059669' : '#4F46E5',
+                      border: `1px solid ${d.status === 'AVAILABLE' ? '#A7F3D0' : '#C7D2FE'}`
                     }}>
                       {d.status}
                     </span>

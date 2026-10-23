@@ -399,7 +399,7 @@ export default function ReceiverDashboard() {
                 <div
                   key={r.id}
                   style={{
-                    background: 'rgba(255,255,255,0.03)',
+                    background: '#F8FAFC',
                     border: '1px solid var(--border-subtle)',
                     borderRadius: '12px',
                     padding: '16px',
@@ -567,7 +567,8 @@ export default function ReceiverDashboard() {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                   gap: '12px',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: '#F8FAFC',
+                  border: '1px solid var(--border-subtle)',
                   padding: '16px',
                   borderRadius: '12px'
                 }}>
@@ -666,7 +667,7 @@ export default function ReceiverDashboard() {
                 <div
                   key={h.id}
                   style={{
-                    background: 'rgba(255,255,255,0.03)',
+                    background: '#F8FAFC',
                     border: '1px solid var(--border-subtle)',
                     borderRadius: '12px',
                     padding: '16px',
@@ -714,28 +715,28 @@ export default function ReceiverDashboard() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             gap: '16px'
           }}>
-            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
+            <div style={{ background: '#F8FAFC', border: '1px solid var(--border-subtle)', padding: '16px', borderRadius: '12px' }}>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Storage Capacity</span>
               <h4 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{user?.storageCapacity || 120} Servings</h4>
             </div>
 
-            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
+            <div style={{ background: '#F8FAFC', border: '1px solid var(--border-subtle)', padding: '16px', borderRadius: '12px' }}>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Cooking Facilities</span>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: user?.cookingFacilities ? '#34d399' : '#f43f5e' }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: user?.cookingFacilities ? '#059669' : '#DC2626' }}>
                 {user?.cookingFacilities ? '✅ Operational Kitchen' : '❌ No Kitchen (Cooked Meals Only)'}
               </h4>
             </div>
 
-            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
+            <div style={{ background: '#F8FAFC', border: '1px solid var(--border-subtle)', padding: '16px', borderRadius: '12px' }}>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Clean Water Availability</span>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: user?.cleanWater ? '#34d399' : '#f43f5e' }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: user?.cleanWater ? '#059669' : '#DC2626' }}>
                 {user?.cleanWater ? '✅ Verified Clean Source' : '❌ Limited Supply'}
               </h4>
             </div>
 
-            <div style={{ background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px' }}>
+            <div style={{ background: '#F8FAFC', border: '1px solid var(--border-subtle)', padding: '16px', borderRadius: '12px' }}>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Operating Hours</span>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#60a5fa' }}>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#2563EB' }}>
                 {user?.operatingHours || '6:00 AM - 11:00 PM'}
               </h4>
             </div>
@@ -756,7 +757,7 @@ export default function ReceiverDashboard() {
                 <div
                   key={n.id}
                   style={{
-                    background: 'rgba(255,255,255,0.03)',
+                    background: '#F8FAFC',
                     border: '1px solid var(--border-subtle)',
                     borderRadius: '10px',
                     padding: '12px 16px',
