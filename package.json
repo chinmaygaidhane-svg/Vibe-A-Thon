@@ -1,11 +1,14 @@
 {
   "name": "aidflow-ai",
   "version": "1.0.0",
-  "description": "AidFlow AI: Three-Role Authentication and Live Donation Coordination Platform",
+  "description": "AidFlow AI: Real-Time Surplus Food Coordination Platform with SQLite, Socket.IO, React and Leaflet",
   "private": true,
   "scripts": {
-    "server": "cd backend && npm run dev",
-    "client": "cd frontend && npm run dev",
-    "start": "node run-all.js"
+    "dev": "node run-all.js",
+    "start": "node run-all.js",
+    "seed": "cd server && node seed.js",
+    "test": "cd server && node test-business-logic.js",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm run dev"
   }
 }
