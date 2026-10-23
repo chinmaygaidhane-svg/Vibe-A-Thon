@@ -1,139 +1,126 @@
 import express from 'express';
 import http from 'http';
 import cors from 'cors';
-import { WebSocketServer, WebSocket } from 'ws';
-import { db } from './database.js';
-import { authenticateToken } from './auth.js';
+import cookieParser from 'cookie-parser';
+import { Server as SocketIOServer } from 'socket.io';
+import jwt from 'jsonwebtoken';
+import { initDatabase } from './database.js';
+import { JWT_SECRET } from './middleware/auth.js';
 
 import authRoutes from './routes/authRoutes.js';
 import donationRoutes from './routes/donationRoutes.js';
 import requestRoutes from './routes/requestRoutes.js';
+import assignmentRoutes from './routes/assignmentRoutes.js';
 import simulationRoutes from './routes/simulationRoutes.js';
+import operationsRoutes from './routes/operationsRoutes.js';
+
+import { runGhostRecoveryCheck } from './services/ghostRecoveryService.js';
+import { runExpiryCheck } from './services/expiryService.js';
+
+// Initialize SQLite Database schema
+initDatabase();
 
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// Setup Middleware
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(cookieParser());
 app.use(express.json());
 
-// Setup WebSocket Server
-const wss = new WebSocketServer({ server });
+// Setup Socket.IO Server with JWT authentication
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: true,
+    credentials: true
+  }
+});
 
-function broadcast(payload) {
-  const messageStr = JSON.stringify(payload);
-  wss.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(messageStr);
+io.use((socket, next) => {
+  // Extract token from handshake auth or cookie
+  let token = socket.handshake.auth?.token;
+  if (!token && socket.handshake.headers.cookie) {
+    const cookies = Object.fromEntries(
+      socket.handshake.headers.cookie.split('; ').map(c => c.split('='))
+    );
+    token = cookies.token;
+  }
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      socket.user = decoded;
+      socket.join(`user_${decoded.id}`);
+    } catch {
+      // Allow unauthenticated connection for public broadcasts
+    }
+  }
+  next();
+});
+
+io.on('connection', socket => {
+  socket.emit('connected', { message: 'AidFlow AI Real-Time Socket Connected' });
+
+  // Allow client to subscribe to specific delivery mission room
+  socket.on('join_delivery', ({ deliveryId }) => {
+    if (deliveryId) {
+      socket.join(`delivery_${deliveryId}`);
     }
   });
-}
 
-// Make broadcast available across route handlers
-app.set('broadcast', broadcast);
-
-wss.on('connection', ws => {
-  // Send initial handshake
-  ws.send(JSON.stringify({
-    event: 'CONNECTED',
-    message: 'AidFlow AI Real-Time WebSocket Synchronization Connected',
-    timestamp: new Date().toISOString()
-  }));
-
-  ws.on('message', message => {
-    try {
-      const data = JSON.parse(message);
-      if (data.type === 'PING') {
-        ws.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
-      }
-    } catch {
-      // ignore
+  socket.on('leave_delivery', ({ deliveryId }) => {
+    if (deliveryId) {
+      socket.leave(`delivery_${deliveryId}`);
     }
   });
 });
 
-// Routes
+app.set('io', io);
+
+// Mount API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/requests', requestRoutes);
-app.use('/api/simulation', simulationRoutes);
-
-// Notifications endpoint
-app.get('/api/notifications', authenticateToken, (req, res) => {
-  const notifs = db.getNotifications(req.user.id, req.user.role);
-  res.json({ notifications: notifs });
-});
-
-// Audit logs endpoint
-app.get('/api/logs', authenticateToken, (req, res) => {
-  const logs = db.getAuditLogs(100);
-  res.json({ logs });
-});
+app.use('/api/assignments', assignmentRoutes);
+app.use('/api/operations', operationsRoutes);
+app.use('/simulate', simulationRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
     platform: 'AidFlow AI',
-    timestamp: new Date().toISOString(),
-    connectedSockets: wss.clients.size,
-    donationsCount: db.getDonations().length,
-    requestsCount: db.getRequests().length
+    timestamp: new Date().toISOString()
   });
 });
 
-// Background Safety Monitor (Checks expiry and ghost reservations periodically)
+// Periodic Background Jobs:
+// 1. Ghost reservation recovery job every 15 seconds
+const GHOST_JOB_INTERVAL_MS = 15 * 1000;
 setInterval(() => {
-  const now = Date.now();
-  let changed = false;
-
-  // 1. Expiry Check
-  db.getDonations().forEach(d => {
-    if (d.status === 'AVAILABLE' || d.status === 'PARTIALLY_RESERVED') {
-      const deadline = new Date(d.safeUseDeadline).getTime();
-      if (deadline <= now) {
-        db.updateDonation(d.id, { status: 'EXPIRED' });
-        db.addAuditLog('DONATION_EXPIRED', `Donation ${d.mealName} passed its safe-use deadline and was marked EXPIRED.`, {
-          donationId: d.id
-        });
-        changed = true;
-      }
-    }
-  });
-
-  // 2. Ghost Reservation Detection Check
-  db.getRequests().forEach(r => {
-    if (r.assignmentStatus === 'AWAITING_RIDER' || r.assignmentStatus === 'ASSIGNED') {
-      const expiry = new Date(r.reservedExpiresAt).getTime();
-      if (expiry <= now) {
-        // Auto release ghost reservation
-        const don = db.getDonationById(r.donationId);
-        if (don) {
-          db.updateDonation(don.id, {
-            availableQuantity: don.availableQuantity + r.quantityRequested,
-            reservedQuantity: Math.max(0, don.reservedQuantity - r.quantityRequested),
-            status: 'AVAILABLE'
-          });
-        }
-        db.updateRequest(r.id, {
-          assignmentStatus: 'CANCELLED_TIMEOUT',
-          status: 'TIMEOUT_RELEASED',
-          deliveryNotes: 'Auto-released by background safety monitor due to inactivity.'
-        });
-        db.addAuditLog('AUTO_GHOST_TIMEOUT', `Ghost reservation #${r.id} auto-released. Quantity returned to donor.`, {
-          requestId: r.id
-        });
-        changed = true;
-      }
-    }
-  });
-
-  if (changed) {
-    broadcast({ event: 'BACKGROUND_SAFETY_AUDIT_COMPLETED', timestamp: new Date().toISOString() });
+  try {
+    runGhostRecoveryCheck(io);
+  } catch (err) {
+    console.error('Ghost recovery job error:', err.message);
   }
-}, 20000); // every 20 seconds
+}, GHOST_JOB_INTERVAL_MS);
+
+// 2. Expiry monitor job every 30 seconds
+const EXPIRY_JOB_INTERVAL_MS = 30 * 1000;
+setInterval(() => {
+  try {
+    runExpiryCheck(io);
+  } catch (err) {
+    console.error('Expiry monitor job error:', err.message);
+  }
+}, EXPIRY_JOB_INTERVAL_MS);
 
 server.listen(PORT, () => {
-  console.log(`🚀 AidFlow AI Backend & WebSocket Server active on http://localhost:${PORT}`);
+  console.log(`🚀 AidFlow AI Server running at http://localhost:${PORT}`);
+  console.log(`⏱️ Ghost reservation recovery job running every 15s`);
+  console.log(`⏱️ Expiry monitor job running every 30s`);
 });

@@ -1,113 +1,145 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { db } from '../database.js';
-import { generateToken, authenticateToken, sanitizeUser } from '../auth.js';
+import { db, logEvent } from '../database.js';
+import { authenticate, generateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Register new user (Donor, Receiver, or Rider)
-router.post('/register', async (req, res) => {
-  try {
-    const {
-      role,
-      email,
-      password,
-      name,
-      phone,
-      // Donor specific
-      donorCategory,
-      pickupAddress,
-      lat,
-      lng,
-      // Receiver specific
-      orgType,
-      address,
-      storageCapacity,
-      cleanWater,
-      cookingFacilities,
-      foodHandlingCapabilities,
-      operatingHours,
-      // Rider specific
-      vehicleType,
-      maxCapacity,
-      preferredArea,
-      locationSharing
-    } = req.body;
+// Helper to sanitize user object
+function getFullUserProfile(userId, role) {
+  const user = db.prepare('SELECT id, email, role, name, phone, created_at FROM users WHERE id = ?').get(userId);
+  if (!user) return null;
 
-    if (!role || !['donor', 'receiver', 'rider'].includes(role)) {
-      return res.status(400).json({ error: 'Valid role (donor, receiver, rider) is required.' });
-    }
+  let profile = null;
+  if (role === 'donor') {
+    profile = db.prepare('SELECT * FROM donor_profiles WHERE user_id = ?').get(userId);
+  } else if (role === 'receiver') {
+    profile = db.prepare('SELECT * FROM receiver_profiles WHERE user_id = ?').get(userId);
+  } else if (role === 'rider') {
+    profile = db.prepare('SELECT * FROM rider_profiles WHERE user_id = ?').get(userId);
+  }
+
+  return { ...user, profile };
+}
+
+// POST /auth/register/:role (Role fixed by route, NEVER from client body)
+router.post('/register/:role', async (req, res) => {
+  const { role } = req.params;
+
+  if (!['donor', 'receiver', 'rider'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid registration role specified in route.' });
+  }
+
+  try {
+    const { email, password, name, phone, ...rest } = req.body;
 
     if (!email || !password || !name) {
-      return res.status(400).json({ error: 'Name, email, and password are required.' });
+      return res.status(400).json({ error: 'Name, email, and password are required fields.' });
     }
 
-    const existingUser = db.getUserByEmail(email);
-    if (existingUser) {
-      return res.status(409).json({ error: 'An account with this email already exists.' });
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (existing) {
+      return res.status(409).json({ error: 'An account with this email address already exists.' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync(password, salt);
+    const userId = `u-${role}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
 
-    const userId = `u-${role}-${Date.now()}`;
-    const newUser = {
-      id: userId,
-      role,
-      email: email.trim().toLowerCase(),
-      password: hashedPassword,
-      name: name.trim(),
-      phone: phone || '',
-      createdAt: new Date().toISOString()
-    };
+    const transaction = db.transaction(() => {
+      // 1. Insert user
+      db.prepare(`
+        INSERT INTO users (id, email, password_hash, role, name, phone)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(userId, email, passwordHash, role, name, phone || '');
 
-    if (role === 'donor') {
-      newUser.donorCategory = donorCategory || 'Restaurant';
-      newUser.pickupAddress = pickupAddress || address || 'Pune, Maharashtra';
-      newUser.lat = parseFloat(lat) || 18.5204;
-      newUser.lng = parseFloat(lng) || 73.8567;
-    } else if (role === 'receiver') {
-      newUser.orgType = orgType || 'Night Shelter';
-      newUser.address = address || 'Pune, Maharashtra';
-      newUser.lat = parseFloat(lat) || 18.5204;
-      newUser.lng = parseFloat(lng) || 73.8567;
-      newUser.storageCapacity = parseInt(storageCapacity) || 100;
-      newUser.cleanWater = cleanWater !== undefined ? Boolean(cleanWater) : true;
-      newUser.cookingFacilities = cookingFacilities !== undefined ? Boolean(cookingFacilities) : true;
-      newUser.foodHandlingCapabilities = Array.isArray(foodHandlingCapabilities)
-        ? foodHandlingCapabilities
-        : ['cooked_meals', 'bakery_packaged'];
-      newUser.operatingHours = operatingHours || '8:00 AM - 10:00 PM';
-      newUser.currentDemand = 50;
-    } else if (role === 'rider') {
-      newUser.vehicleType = vehicleType || 'Two-Wheeler';
-      newUser.maxCapacity = parseInt(maxCapacity) || 60;
-      newUser.preferredArea = preferredArea || 'Pune Central';
-      newUser.availability = 'AVAILABLE';
-      newUser.locationSharing = locationSharing !== undefined ? Boolean(locationSharing) : true;
-      newUser.currentLat = parseFloat(lat) || 18.5240;
-      newUser.currentLng = parseFloat(lng) || 73.8480;
-    }
+      // 2. Insert role-specific profile
+      if (role === 'donor') {
+        db.prepare(`
+          INSERT INTO donor_profiles (user_id, org_name, category, pickup_address, lat, lng)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+          userId,
+          rest.orgName || name,
+          rest.category || 'restaurant',
+          rest.pickupAddress || 'Pune, Maharashtra',
+          parseFloat(rest.lat) || 18.5204,
+          parseFloat(rest.lng) || 73.8567
+        );
+      } else if (role === 'receiver') {
+        db.prepare(`
+          INSERT INTO receiver_profiles (
+            user_id, org_name, org_type, address, lat, lng,
+            storage_capacity, clean_water, cooking_facilities,
+            food_handling_capabilities, operating_hours, current_demand
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          userId,
+          rest.orgName || name,
+          rest.orgType || 'night shelter',
+          rest.address || 'Pune, Maharashtra',
+          parseFloat(rest.lat) || 18.5204,
+          parseFloat(rest.lng) || 73.8567,
+          parseInt(rest.storageCapacity) || 100,
+          rest.cleanWater !== undefined ? (rest.cleanWater ? 1 : 0) : 1,
+          rest.cookingFacilities !== undefined ? (rest.cookingFacilities ? 1 : 0) : 1,
+          rest.foodHandlingCapabilities || 'cooked,packaged',
+          rest.operatingHours || '08:00 - 22:00',
+          parseInt(rest.currentDemand) || 50
+        );
 
-    db.addUser(newUser);
-    db.addAuditLog('USER_REGISTERED', `New ${role} registered: ${newUser.name} (${newUser.email})`, {
-      userId: newUser.id,
-      role
+        db.prepare(`
+          INSERT INTO receiver_demand (id, receiver_id, item_category, needed_quantity, remaining_demand)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(`dem-${Date.now()}`, userId, 'cooked_meals', parseInt(rest.currentDemand) || 50, parseInt(rest.currentDemand) || 50);
+      } else if (role === 'rider') {
+        db.prepare(`
+          INSERT INTO rider_profiles (
+            user_id, full_name, vehicle_type, max_capacity,
+            operating_area, availability, location_sharing, current_lat, current_lng
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          userId,
+          rest.fullName || name,
+          rest.vehicleType || 'Two-Wheeler',
+          parseInt(rest.maxCapacity) || 40,
+          rest.operatingArea || 'Pune Central',
+          rest.availability !== undefined ? (rest.availability ? 1 : 0) : 1,
+          rest.locationSharing !== undefined ? (rest.locationSharing ? 1 : 0) : 1,
+          parseFloat(rest.lat) || 18.5204,
+          parseFloat(rest.lng) || 73.8567
+        );
+      }
+
+      logEvent('USER_REGISTERED', `New ${role} registered: ${name} (${email})`, { userId, role });
     });
 
-    const token = generateToken(newUser);
+    transaction();
+
+    const userWithProfile = getFullUserProfile(userId, role);
+    const token = generateToken(userWithProfile);
+
+    // Set httpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     return res.status(201).json({
-      message: 'Registration successful!',
+      message: `${role.toUpperCase()} account created successfully.`,
       token,
-      user: sanitizeUser(newUser)
+      user: userWithProfile
     });
   } catch (err) {
     console.error('Registration error:', err);
-    return res.status(500).json({ error: 'Internal server error during registration.' });
+    return res.status(500).json({ error: 'Server error during registration.' });
   }
 });
 
-// Login
+// POST /auth/login { email, password, role }
+// Reject if account role does not match the login page used
 router.post('/login', async (req, res) => {
   try {
     const { email, password, role } = req.body;
@@ -116,84 +148,75 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    const user = db.getUserByEmail(email);
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials. User not found.' });
+      return res.status(401).json({ error: 'Invalid credentials. Account not found.' });
     }
 
-    // Role check if supplied
+    // Role verification: Reject if account role does not match login entry point
     if (role && user.role !== role) {
       return res.status(403).json({
-        error: `Account role mismatch: This account is registered as '${user.role.toUpperCase()}', not '${role.toUpperCase()}'. Please select the correct role tab.`
+        error: `Account role mismatch: This account is registered as '${user.role.toUpperCase()}', not '${role.toUpperCase()}'. Please use the ${user.role} login portal.`
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid credentials. Incorrect password.' });
     }
 
-    const token = generateToken(user);
-    db.addAuditLog('USER_LOGIN', `${user.name} logged in as ${user.role}`, { userId: user.id });
+    const userWithProfile = getFullUserProfile(user.id, user.role);
+    const token = generateToken(userWithProfile);
+
+    // Set httpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    logEvent('USER_LOGIN', `User logged in: ${user.name} (${user.email}) as ${user.role}`, { userId: user.id });
 
     return res.json({
       message: 'Login successful!',
       token,
-      user: sanitizeUser(user)
+      user: userWithProfile
     });
   } catch (err) {
     console.error('Login error:', err);
-    return res.status(500).json({ error: 'Internal server error during login.' });
+    return res.status(500).json({ error: 'Server error during login.' });
   }
 });
 
-// Quick switch / demo login for hackathon walkthrough
-router.post('/demo-login', (req, res) => {
-  const { demoRole } = req.body; // 'donor' | 'receiver' | 'receiver_b' | 'rider'
-  let targetUser = null;
-
-  if (demoRole === 'donor') {
-    targetUser = db.getUserByEmail('donor@aidflow.org');
-  } else if (demoRole === 'receiver' || demoRole === 'receiver_a') {
-    targetUser = db.getUserByEmail('shelterA@aidflow.org');
-  } else if (demoRole === 'receiver_b') {
-    targetUser = db.getUserByEmail('shelterB@aidflow.org');
-  } else if (demoRole === 'receiver_c') {
-    targetUser = db.getUserByEmail('shelterC@aidflow.org');
-  } else if (demoRole === 'rider') {
-    targetUser = db.getUserByEmail('rider@aidflow.org');
-  } else {
-    return res.status(400).json({ error: 'Invalid demo role requested.' });
-  }
-
-  if (!targetUser) {
-    return res.status(404).json({ error: 'Demo user account not found.' });
-  }
-
-  const token = generateToken(targetUser);
-  return res.json({
-    message: `Logged in as demo ${targetUser.role.toUpperCase()}: ${targetUser.name}`,
-    token,
-    user: sanitizeUser(targetUser)
-  });
+// POST /auth/logout
+router.post('/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ message: 'Logged out successfully.' });
 });
 
-// Demo accounts list
+// GET /auth/me
+router.get('/me', authenticate, (req, res) => {
+  const userWithProfile = getFullUserProfile(req.user.id, req.user.role);
+  if (!userWithProfile) {
+    return res.status(404).json({ error: 'User profile not found.' });
+  }
+  res.json({ user: userWithProfile });
+});
+
+// GET /auth/demo-accounts
 router.get('/demo-accounts', (req, res) => {
-  const users = db.getUsers().map(u => ({
-    id: u.id,
-    email: u.email,
-    name: u.name,
-    role: u.role,
-    category: u.donorCategory || u.orgType || u.vehicleType
-  }));
-  res.json({ demoAccounts: users });
-});
+  const users = db.prepare(`
+    SELECT u.id, u.email, u.name, u.role, u.phone,
+      COALESCE(dp.category, rp.org_type, rdp.vehicle_type) AS subtitle,
+      COALESCE(dp.pickup_address, rp.address, rdp.operating_area) AS location
+    FROM users u
+    LEFT JOIN donor_profiles dp ON u.id = dp.user_id
+    LEFT JOIN receiver_profiles rp ON u.id = rp.user_id
+    LEFT JOIN rider_profiles rdp ON u.id = rdp.user_id
+  `).all();
 
-// Get current profile
-router.get('/me', authenticateToken, (req, res) => {
-  const user = db.getUserById(req.user.id);
-  res.json({ user: sanitizeUser(user) });
+  res.json({ demoAccounts: users, demoPassword: 'Demo@1234' });
 });
 
 export default router;
