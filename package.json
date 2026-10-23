@@ -2,6 +2,7 @@
   "name": "aidflow-ai",
   "version": "1.0.0",
   "description": "AidFlow AI: Real-Time Surplus Food Coordination Platform with SQLite, Socket.IO, React and Leaflet",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "node run-all.js",
