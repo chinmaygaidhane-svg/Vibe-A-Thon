@@ -60,36 +60,36 @@ export function seedDatabase() {
   `);
 
   // 1. Seed Donors
-  insertUser.run('u-donor-1', 'donor@aidflow.org', passwordHash, 'donor', 'ABC Restaurant', '+91 98230 11223');
+  insertUser.run('u-donor-1', 'donor@demo.com', passwordHash, 'donor', 'ABC Restaurant', '9000000001');
   insertDonor.run('u-donor-1', 'ABC Restaurant', 'Restaurant', 'FC Road, Shivaji Nagar, Pune', 18.5284, 73.8425);
 
-  insertUser.run('u-donor-2', 'hostel@aidflow.org', passwordHash, 'donor', 'College Hostel Mess', '+91 98230 44556');
+  insertUser.run('u-donor-2', 'hostel@demo.com', passwordHash, 'donor', 'College Hostel Mess', '9000000004');
   insertDonor.run('u-donor-2', 'College Hostel Mess', 'Mess / Hostel', 'Law College Road, Pune', 18.5170, 73.8320);
 
-  insertUser.run('u-donor-3', 'bakery@aidflow.org', passwordHash, 'donor', 'XYZ Bakery', '+91 98230 77889');
+  insertUser.run('u-donor-3', 'bakery@demo.com', passwordHash, 'donor', 'XYZ Bakery', '9000000007');
   insertDonor.run('u-donor-3', 'XYZ Bakery', 'Bakery', 'MG Road, Pune Camp', 18.5140, 73.8790);
 
   // 2. Seed Receivers
-  insertUser.run('u-receiver-1', 'shelterA@aidflow.org', passwordHash, 'receiver', 'Shelter A - Hope Haven', '+91 98901 22334');
+  insertUser.run('u-receiver-1', 'shelter.a@demo.com', passwordHash, 'receiver', 'Shelter A - Hope Haven', '9000000002');
   insertReceiver.run('u-receiver-1', 'Shelter A - Hope Haven', 'Night Shelter', 'Koregaon Park, Pune', 18.5362, 73.8940, 120, 1, 1, 'cooked,packaged,raw_ration', '06:00 - 23:00', 50);
   insertDemand.run('dem-1', 'u-receiver-1', 'cooked_meals', 50, 50);
 
-  insertUser.run('u-receiver-2', 'shelterB@aidflow.org', passwordHash, 'receiver', 'Shelter B - Sunshine Community Kitchen', '+91 98901 55667');
+  insertUser.run('u-receiver-2', 'shelter.b@demo.com', passwordHash, 'receiver', 'Shelter B - Sunshine Community Kitchen', '9000000005');
   insertReceiver.run('u-receiver-2', 'Shelter B - Sunshine Community Kitchen', 'Community Kitchen', 'Camp, MG Road, Pune', 18.5140, 73.8790, 150, 1, 1, 'cooked,packaged', '00:00 - 23:59', 45);
   insertDemand.run('dem-2', 'u-receiver-2', 'cooked_meals', 45, 45);
 
-  insertUser.run('u-receiver-3', 'reliefC@aidflow.org', passwordHash, 'receiver', 'Relief Camp C - Care Home', '+91 98901 88990');
+  insertUser.run('u-receiver-3', 'relief.c@demo.com', passwordHash, 'receiver', 'Relief Camp C - Care Home', '9000000008');
   insertReceiver.run('u-receiver-3', 'Relief Camp C - Care Home', 'Relief Camp', 'Aundh, Pune', 18.5580, 73.8073, 60, 1, 0, 'cooked,packaged', '07:00 - 21:00', 30);
   insertDemand.run('dem-3', 'u-receiver-3', 'cooked_meals', 30, 30);
 
   // 3. Seed Riders
-  insertUser.run('u-rider-1', 'rider@aidflow.org', passwordHash, 'rider', 'Rider Rahul', '+91 97654 32109');
+  insertUser.run('u-rider-1', 'rider@demo.com', passwordHash, 'rider', 'Rider Rahul', '9000000003');
   insertRider.run('u-rider-1', 'Rider Rahul', 'Two-Wheeler (Motorbike)', 40, 'Pune Central (FC Road, Shivaji Nagar)', 1, 1, 18.5240, 73.8480);
 
-  insertUser.run('u-rider-2', 'rider2@aidflow.org', passwordHash, 'rider', 'Rider Priya', '+91 97654 88776');
+  insertUser.run('u-rider-2', 'rider2@demo.com', passwordHash, 'rider', 'Rider Priya', '9000000006');
   insertRider.run('u-rider-2', 'Rider Priya', 'Van / Mini-Truck', 120, 'Pune East (Koregaon Park, Camp)', 1, 1, 18.5300, 73.8600);
 
-  insertUser.run('u-rider-3', 'rider3@aidflow.org', passwordHash, 'rider', 'Rider Amit', '+91 97654 44332');
+  insertUser.run('u-rider-3', 'rider3@demo.com', passwordHash, 'rider', 'Rider Amit', '9000000009');
   insertRider.run('u-rider-3', 'Rider Amit', 'Two-Wheeler (Scooter)', 50, 'Pune West (Aundh, Kothrud)', 1, 1, 18.5200, 73.8400);
 
   // 4. Seed Donations

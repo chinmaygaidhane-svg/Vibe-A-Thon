@@ -21,11 +21,13 @@ export default function AuthView({ defaultRegister = false }) {
   }, [routeRole, defaultRegister]);
 
   // Form Fields
+  // Form Fields
   const [formData, setFormData] = useState({
+    identifier: 'donor@demo.com',
     email: '',
     password: 'Demo@1234',
     name: '',
-    phone: '+91 98230 11223',
+    phone: '9823011223',
     // Donor specific
     donorCategory: 'Restaurant',
     pickupAddress: 'FC Road, Shivaji Nagar, Pune',
@@ -52,11 +54,11 @@ export default function AuthView({ defaultRegister = false }) {
   useEffect(() => {
     if (!isRegister) {
       if (activeRole === 'donor') {
-        setFormData(prev => ({ ...prev, email: 'donor@aidflow.org', password: 'Demo@1234' }));
+        setFormData(prev => ({ ...prev, identifier: 'donor@demo.com', password: 'Demo@1234' }));
       } else if (activeRole === 'receiver') {
-        setFormData(prev => ({ ...prev, email: 'shelterA@aidflow.org', password: 'Demo@1234' }));
+        setFormData(prev => ({ ...prev, identifier: 'shelter.a@demo.com', password: 'Demo@1234' }));
       } else if (activeRole === 'rider') {
-        setFormData(prev => ({ ...prev, email: 'rider@aidflow.org', password: 'Demo@1234' }));
+        setFormData(prev => ({ ...prev, identifier: 'rider@demo.com', password: 'Demo@1234' }));
       }
     }
   }, [activeRole, isRegister]);
@@ -70,7 +72,7 @@ export default function AuthView({ defaultRegister = false }) {
     const endpoint = isRegister ? `/api/auth/register/${activeRole}` : '/api/auth/login';
     const payload = isRegister
       ? { ...formData, role: activeRole, orgName: formData.name, fullName: formData.name }
-      : { email: formData.email, password: formData.password, role: activeRole };
+      : { identifier: formData.identifier || formData.email, password: formData.password, role: activeRole };
 
     try {
       const res = await fetch(endpoint, {
@@ -210,16 +212,49 @@ export default function AuthView({ defaultRegister = false }) {
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">Email Address *</label>
-            <input
-              type="email"
-              required
-              className="form-input"
-              value={formData.email}
-              onChange={e => setFormData({ ...formData, email: e.target.value })}
-            />
-          </div>
+          {!isRegister ? (
+            <div className="form-group">
+              <label className="form-label">Email or phone number *</label>
+              <input
+                id="input-identifier"
+                type="text"
+                required
+                className="form-input"
+                placeholder="e.g. shelter.a@demo.com or 9000000002"
+                value={formData.identifier}
+                onChange={e => setFormData({ ...formData, identifier: e.target.value })}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="form-group">
+                <label className="form-label">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  className="form-input"
+                  placeholder="e.g. contact@myshelter.org"
+                  value={formData.email}
+                  onChange={e => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Phone Number *</label>
+                <input
+                  type="tel"
+                  required
+                  className="form-input"
+                  placeholder="10-digit Indian mobile (e.g. 9823011223 or +91 98230 11223)"
+                  value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                />
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                  10-digit Indian mobile number starting with 6-9
+                </span>
+              </div>
+            </>
+          )}
 
           <div className="form-group">
             <label className="form-label">Password *</label>
@@ -230,12 +265,52 @@ export default function AuthView({ defaultRegister = false }) {
               value={formData.password}
               onChange={e => setFormData({ ...formData, password: e.target.value })}
             />
-            {!isRegister && (
-              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                Hint: Demo accounts use password: <strong style={{ color: '#38bdf8' }}>Demo@1234</strong>
-              </span>
-            )}
           </div>
+
+          {/* Small Demo accounts box on login page */}
+          {!isRegister && (
+            <div style={{
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '12px 14px',
+              fontSize: '12px',
+              color: '#334155'
+            }}>
+              <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '6px' }}>
+                🎯 Demo Accounts (Password: Demo@1234)
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', padding: '2px 0' }}
+                  onClick={() => setFormData(prev => ({ ...prev, identifier: 'donor@demo.com', password: 'Demo@1234' }))}
+                  title="Click to auto-fill"
+                >
+                  <span>🏪 Donor (ABC Restaurant):</span>
+                  <strong style={{ color: '#ea580c' }}>donor@demo.com / 9000000001</strong>
+                </div>
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', padding: '2px 0' }}
+                  onClick={() => setFormData(prev => ({ ...prev, identifier: 'shelter.a@demo.com', password: 'Demo@1234' }))}
+                  title="Click to auto-fill"
+                >
+                  <span>🏠 Receiver (Shelter A):</span>
+                  <strong style={{ color: '#4f46e5' }}>shelter.a@demo.com / 9000000002</strong>
+                </div>
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', cursor: 'pointer', padding: '2px 0' }}
+                  onClick={() => setFormData(prev => ({ ...prev, identifier: 'rider@demo.com', password: 'Demo@1234' }))}
+                  title="Click to auto-fill"
+                >
+                  <span>🛵 Rider (Rider Rahul):</span>
+                  <strong style={{ color: '#0891b2' }}>rider@demo.com / 9000000003</strong>
+                </div>
+              </div>
+              <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '6px' }}>
+                💡 Click any row to auto-fill credentials. Login with either email or 10-digit phone number.
+              </span>
+            </div>
+          )}
 
           {/* Role-Specific Registration Fields */}
           {isRegister && activeRole === 'donor' && (

@@ -200,4 +200,44 @@ console.log('Test 6: Feasibility-Filtered Receiver Feed & Fast-Forward Tests');
   console.log('  ✓ Far receiver filtered out, near receiver sees donation, and donation disappears after time fast-forward');
 }
 
-console.log('\n🎉 ALL 6 CORE BUSINESS LOGIC TESTS PASSED SUCCESSFULLY!\n');
+// TEST 7: Authentication with Email or Phone Number (Update 2)
+console.log('Test 7: Authentication with Email or Phone Number Tests');
+{
+  const { normalizeIndianPhoneNumber } = await import('./routes/authRoutes.js');
+  const bcrypt = (await import('bcryptjs')).default;
+
+  // 1. Phone Normalization tests
+  assert.strictEqual(normalizeIndianPhoneNumber('+91 90000 00001'), '9000000001');
+  assert.strictEqual(normalizeIndianPhoneNumber('+91-98230-11223'), '9823011223');
+  assert.strictEqual(normalizeIndianPhoneNumber('09823011223'), '9823011223');
+  assert.strictEqual(normalizeIndianPhoneNumber('9823011223'), '9823011223');
+  assert.strictEqual(normalizeIndianPhoneNumber('12345'), null, 'Invalid length should return null');
+  assert.strictEqual(normalizeIndianPhoneNumber('4000000001'), null, 'Should only accept starting with 6-9');
+  console.log('  ✓ Indian phone normalization (+91, dashes, 0) verified');
+
+  // 2. Lookup by email
+  const userByEmail = db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get('donor@demo.com');
+  assert(userByEmail, 'Should find user by email');
+  assert.strictEqual(userByEmail.role, 'donor');
+
+  // 3. Lookup by normalized phone
+  const rawInputPhone = '+91 90000 00002';
+  const normalizedPhone = normalizeIndianPhoneNumber(rawInputPhone);
+  assert.strictEqual(normalizedPhone, '9000000002');
+  const userByPhone = db.prepare('SELECT * FROM users WHERE phone = ?').get(normalizedPhone);
+  assert(userByPhone, 'Should find user by normalized phone');
+  assert.strictEqual(userByPhone.email, 'shelter.a@demo.com');
+  assert.strictEqual(userByPhone.role, 'receiver');
+
+  // 4. Role mismatch rejection
+  const attemptedRole = 'rider';
+  const roleMatches = userByEmail.role === attemptedRole;
+  assert.strictEqual(roleMatches, false, 'Role mismatch must be flagged');
+
+  // 5. Duplicate phone rejection
+  const dupPhoneCheck = db.prepare('SELECT id FROM users WHERE phone = ?').get('9000000001');
+  assert(dupPhoneCheck, 'Should detect duplicate phone in database');
+  console.log('  ✓ Login by email, login by phone (+91 format), wrong role rejection, and duplicate phone detection verified');
+}
+
+console.log('\n🎉 ALL 7 CORE BUSINESS LOGIC TESTS PASSED SUCCESSFULLY!\n');

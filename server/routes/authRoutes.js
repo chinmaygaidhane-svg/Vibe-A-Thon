@@ -1,9 +1,46 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import rateLimit from 'express-rate-limit';
 import { db, logEvent } from '../database.js';
 import { authenticate, generateToken } from '../middleware/auth.js';
 
 const router = express.Router();
+
+/**
+ * Normalizes Indian mobile number:
+ * Strips spaces, dashes, parentheses, +91, 91, and leading 0.
+ * Must result in 10 digits starting with 6-9.
+ */
+export function normalizeIndianPhoneNumber(phone) {
+  if (!phone || typeof phone !== 'string') return null;
+  let cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
+  if (cleaned.startsWith('+91')) {
+    cleaned = cleaned.substring(3);
+  } else if (cleaned.startsWith('91') && cleaned.length === 12) {
+    cleaned = cleaned.substring(2);
+  } else if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = cleaned.substring(1);
+  }
+  if (/^[6-9]\d{9}$/.test(cleaned)) {
+    return cleaned;
+  }
+  return null;
+}
+
+// Rate limiter: 5 failed attempts per 15 minutes per identifier
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => {
+    const raw = req.body?.identifier || req.body?.email || req.body?.phone || 'anonymous';
+    return String(raw).toLowerCase().trim();
+  },
+  skipSuccessfulRequests: true,
+  message: { error: 'Too many failed login attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { keyGeneratorIpFallback: false }
+});
 
 // Helper to sanitize user object
 function getFullUserProfile(userId, role) {
@@ -33,13 +70,23 @@ router.post('/register/:role', async (req, res) => {
   try {
     const { email, password, name, phone, ...rest } = req.body;
 
-    if (!email || !password || !name) {
-      return res.status(400).json({ error: 'Name, email, and password are required fields.' });
+    if (!email || !password || !name || !phone) {
+      return res.status(400).json({ error: 'Name, email, phone number, and password are all required.' });
     }
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-    if (existing) {
+    const normPhone = normalizeIndianPhoneNumber(phone);
+    if (!normPhone) {
+      return res.status(400).json({ error: 'Invalid phone number. Must be a 10-digit Indian mobile number starting with 6-9.' });
+    }
+
+    const existingEmail = db.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').get(email);
+    if (existingEmail) {
       return res.status(409).json({ error: 'An account with this email address already exists.' });
+    }
+
+    const existingPhone = db.prepare('SELECT id FROM users WHERE phone = ?').get(normPhone);
+    if (existingPhone) {
+      return res.status(409).json({ error: 'An account with this phone number already exists.' });
     }
 
     const salt = bcrypt.genSaltSync(10);
@@ -51,7 +98,7 @@ router.post('/register/:role', async (req, res) => {
       db.prepare(`
         INSERT INTO users (id, email, password_hash, role, name, phone)
         VALUES (?, ?, ?, ?, ?, ?)
-      `).run(userId, email, passwordHash, role, name, phone || '');
+      `).run(userId, email.toLowerCase().trim(), passwordHash, role, name, normPhone);
 
       // 2. Insert role-specific profile
       if (role === 'donor') {
@@ -138,31 +185,43 @@ router.post('/register/:role', async (req, res) => {
   }
 });
 
-// POST /auth/login { email, password, role }
-// Reject if account role does not match the login page used
-router.post('/login', async (req, res) => {
+// POST /auth/login { identifier, password, role }
+// If identifier contains "@", look up by email; otherwise normalize and look up by phone.
+// Still reject if the account role does not match the login page.
+// Use one generic "Invalid credentials" error for all failures.
+router.post('/login', loginLimiter, async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    const rawId = req.body.identifier || req.body.email || req.body.phone;
+    const { password, role } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required.' });
+    if (!rawId || !password) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const trimmed = String(rawId).trim();
+    let user = null;
+
+    if (trimmed.includes('@')) {
+      user = db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(trimmed);
+    } else {
+      const normPhone = normalizeIndianPhoneNumber(trimmed);
+      if (normPhone) {
+        user = db.prepare('SELECT * FROM users WHERE phone = ?').get(normPhone);
+      }
+    }
+
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials. Account not found.' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Role verification: Reject if account role does not match login entry point
+    // Role check: reject if role mismatch with generic error
     if (role && user.role !== role) {
-      return res.status(403).json({
-        error: `Account role mismatch: This account is registered as '${user.role.toUpperCase()}', not '${role.toUpperCase()}'. Please use the ${user.role} login portal.`
-      });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials. Incorrect password.' });
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const userWithProfile = getFullUserProfile(user.id, user.role);
@@ -176,7 +235,7 @@ router.post('/login', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    logEvent('USER_LOGIN', `User logged in: ${user.name} (${user.email}) as ${user.role}`, { userId: user.id });
+    logEvent('USER_LOGIN', `User logged in: ${user.name} (${user.email} / ${user.phone}) as ${user.role}`, { userId: user.id });
 
     return res.json({
       message: 'Login successful!',
