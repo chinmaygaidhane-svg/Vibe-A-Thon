@@ -118,19 +118,23 @@ button, input, select, textarea {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* App Header */
-.app-header {
-  height: 64px;
-  background: #FFFFFF;
-  border-bottom: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  position: sticky;
-  top: 45px;
-  z-index: 990;
-  box-shadow: var(--shadow-sm);
+/* Responsive Sidebar Rules */
+@media (max-width: 768px) {
+  .app-sidebar {
+    transform: translateX(-100%);
+  }
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .app-main-viewport {
+    margin-left: 0 !important;
+  }
+  .mobile-hamburger {
+    display: block !important;
+  }
+  .mobile-close-btn {
+    display: block !important;
+  }
 }
 
 .brand {
