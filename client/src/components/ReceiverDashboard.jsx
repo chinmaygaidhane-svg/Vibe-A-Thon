@@ -199,6 +199,8 @@ export default function ReceiverDashboard() {
     } catch {
       alert('Error confirming receipt');
     }
+  };
+
   const handleReportConcern = async (del) => {
     const asgnId = del.assignmentId || del.assignments?.[0]?.id;
     if (!asgnId) {
