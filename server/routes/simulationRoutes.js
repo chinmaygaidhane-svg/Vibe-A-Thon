@@ -84,4 +84,23 @@ router.post('/traffic-delay', async (req, res) => {
   }
 });
 
+// GET /simulate/handover-codes/:assignmentId (Demo tool for judge quick auto-fill)
+router.get('/handover-codes/:assignmentId', async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+    const { db } = await import('../database.js');
+    const asgn = db.prepare('SELECT id, pickup_code, delivery_code FROM assignments WHERE id = ? OR request_id = ?').get(assignmentId, assignmentId);
+    if (!asgn) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+    res.json({
+      assignmentId: asgn.id,
+      pickupCode: asgn.pickup_code,
+      deliveryCode: asgn.delivery_code
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 export default router;

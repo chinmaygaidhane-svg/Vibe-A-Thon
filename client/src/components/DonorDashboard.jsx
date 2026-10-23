@@ -253,6 +253,43 @@ export default function DonorDashboard() {
                 {/* Status Timeline */}
                 <StatusTimeline status={selectedRequest.assignmentStatus} />
 
+                {/* Handover Pickup Verification Code (Update 4) */}
+                {selectedRequest.pickupCode && (
+                  <div style={{
+                    background: '#FFF7ED',
+                    border: '1px solid #FFEDD5',
+                    borderRadius: '12px',
+                    padding: '14px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}>
+                    <div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#EA580C', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Handover Pickup Verification Code
+                      </span>
+                      <p style={{ margin: '3px 0 0', fontSize: '0.84rem', color: '#1E293B' }}>
+                        Provide this 4-digit code to the rider at food collection to verify handover:
+                      </p>
+                    </div>
+                    <div style={{
+                      fontFamily: 'monospace',
+                      fontSize: '1.6rem',
+                      fontWeight: 800,
+                      letterSpacing: '6px',
+                      background: '#FFFFFF',
+                      color: '#EA580C',
+                      padding: '6px 18px',
+                      borderRadius: '8px',
+                      border: '2px dashed #FB923C'
+                    }}>
+                      {selectedRequest.pickupCode}
+                    </div>
+                  </div>
+                )}
+
                 {/* Telemetry info cards */}
                 <div style={{
                   display: 'grid',

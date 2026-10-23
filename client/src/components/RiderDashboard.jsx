@@ -40,6 +40,13 @@ export default function RiderDashboard() {
   const [stuckDelayMinutes, setStuckDelayMinutes] = useState(15);
   const [submittingStuck, setSubmittingStuck] = useState(false);
 
+  // Verification code modal state (Update 4)
+  const [codeModalOpen, setCodeModalOpen] = useState(false);
+  const [codeModalAction, setCodeModalAction] = useState('picked_up'); // 'picked_up' | 'delivered'
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationError, setVerificationError] = useState('');
+  const [verifyingCode, setVerifyingCode] = useState(false);
+
   const fetchRequests = async () => {
     try {
       const res = await fetch('/api/requests', {
@@ -205,6 +212,54 @@ export default function RiderDashboard() {
   };
 
   // Filter donations for the Food Broadcasts tab
+  const handleOpenCodeModal = (action) => {
+    setCodeModalAction(action);
+    setVerificationCode('');
+    setVerificationError('');
+    setCodeModalOpen(true);
+  };
+
+  const handleVerifyAndSubmitCode = async () => {
+    if (!verificationCode || verificationCode.trim().length !== 4) {
+      setVerificationError('Please enter a 4-digit numeric verification code.');
+      return;
+    }
+    if (!activeAssignment) return;
+    setVerifyingCode(true);
+    setVerificationError('');
+    try {
+      const res = await fetch(`/api/requests/${activeAssignment.id}/status`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: codeModalAction,
+          code: verificationCode.trim()
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        addToast({
+          title: codeModalAction === 'picked_up' ? 'Pickup Verified!' : 'Delivery Verified!',
+          message: data.message || 'Verification code confirmed.',
+          type: 'success'
+        });
+        setCodeModalOpen(false);
+        setVerificationCode('');
+        setVerificationError('');
+        fetchRequests();
+      } else {
+        setVerificationError(data.error || 'Verification code failed');
+      }
+    } catch {
+      setVerificationError('Network error verifying code');
+    } finally {
+      setVerifyingCode(false);
+    }
+  };
+
   const filteredDonations = donations.filter(don => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();

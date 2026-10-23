@@ -41,7 +41,20 @@ router.get('/', authenticate, (req, res) => {
   query += ' ORDER BY a.created_at DESC';
 
   const assignments = db.prepare(query).all(...params);
-  res.json({ assignments });
+  const sanitized = assignments.map(a => {
+    const item = { ...a };
+    if (user.role === 'rider') {
+      delete item.pickup_code;
+      delete item.delivery_code;
+    } else if (user.role === 'donor') {
+      delete item.delivery_code;
+    } else if (user.role === 'receiver') {
+      delete item.pickup_code;
+    }
+    return item;
+  });
+
+  res.json({ assignments: sanitized });
 });
 
 // POST /api/assignments/:id/accept (Rider accepts assignment)
@@ -82,10 +95,74 @@ router.post('/:id/accept', authenticate, requireRole('rider'), (req, res) => {
   res.json({ message: 'Assignment successfully accepted!', assignmentId: id });
 });
 
+// Helper: Verify handover codes with 5-attempt threshold and 2-minute lockout
+export function verifyHandoverCode(asgn, normalizedStatus, inputCode, riderId, riderName) {
+  if (normalizedStatus !== 'PICKED_UP' && normalizedStatus !== 'DELIVERED') {
+    return { ok: true };
+  }
+
+  // Check lockout
+  if (asgn.code_locked_until && new Date(asgn.code_locked_until).getTime() > Date.now()) {
+    const remainingSeconds = Math.ceil((new Date(asgn.code_locked_until).getTime() - Date.now()) / 1000);
+    return {
+      ok: false,
+      status: 403,
+      error: `Verification locked due to too many failed attempts. Try again in ${remainingSeconds} seconds.`
+    };
+  }
+
+  const expectedCode = normalizedStatus === 'PICKED_UP' ? asgn.pickup_code : asgn.delivery_code;
+  const actionType = normalizedStatus === 'PICKED_UP' ? 'pickup' : 'delivery';
+
+  if (expectedCode) {
+    if (!inputCode || inputCode.toString().trim() !== expectedCode.toString().trim()) {
+      const newAttempts = (asgn.failed_code_attempts || 0) + 1;
+      if (newAttempts >= 5) {
+        const lockUntil = new Date(Date.now() + 2 * 60 * 1000).toISOString();
+        db.prepare('UPDATE assignments SET failed_code_attempts = 0, code_locked_until = ? WHERE id = ?').run(lockUntil, asgn.id);
+        logEvent('CODE_VERIFICATION_LOCKED', `5 failed ${actionType} verification attempts for assignment ${asgn.id}. Action locked for 2 minutes.`, {
+          assignmentId: asgn.id,
+          actionType,
+          riderId
+        });
+        return {
+          ok: false,
+          status: 403,
+          error: `Too many incorrect attempts (5/5). ${actionType.toUpperCase()} verification locked for 2 minutes.`
+        };
+      } else {
+        db.prepare('UPDATE assignments SET failed_code_attempts = ? WHERE id = ?').run(newAttempts, asgn.id);
+        logEvent('CODE_VERIFICATION_FAILED', `Failed ${actionType} verification attempt (${newAttempts}/5) for assignment ${asgn.id}`, {
+          assignmentId: asgn.id,
+          actionType,
+          attempt: newAttempts,
+          riderId
+        });
+        return {
+          ok: false,
+          status: 400,
+          error: `Invalid ${actionType} verification code. (Attempt ${newAttempts}/5)`
+        };
+      }
+    }
+  }
+
+  // Success: reset attempts
+  db.prepare('UPDATE assignments SET failed_code_attempts = 0, code_locked_until = NULL WHERE id = ?').run(asgn.id);
+  logEvent(
+    normalizedStatus === 'PICKED_UP' ? 'PICKUP_VERIFIED' : 'DELIVERY_VERIFIED',
+    `${actionType.toUpperCase()} verified successfully with 4-digit code for assignment ${asgn.id} by rider ${riderName}`,
+    { assignmentId: asgn.id, riderId }
+  );
+
+  return { ok: true };
+}
+
 // POST /api/assignments/:id/status (Workflow step controls)
 router.post('/:id/status', authenticate, requireRole('rider'), (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, code, pickup_code, delivery_code } = req.body;
+  const inputCode = code || pickup_code || delivery_code;
 
   const validStatuses = ['HEADING_TO_PICKUP', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED'];
   const normalizedStatus = status.toUpperCase().replace(/\s+/g, '_');
@@ -99,6 +176,12 @@ router.post('/:id/status', authenticate, requireRole('rider'), (req, res) => {
   const asgn = db.prepare('SELECT * FROM assignments WHERE id = ? AND rider_id = ?').get(id, req.user.id);
   if (!asgn) {
     return res.status(404).json({ error: 'Assignment not found or unauthorized.' });
+  }
+
+  // Verification code check for PICKED_UP and DELIVERED
+  const codeCheck = verifyHandoverCode(asgn, normalizedStatus, inputCode, req.user.id, req.user.name);
+  if (!codeCheck.ok) {
+    return res.status(codeCheck.status).json({ error: codeCheck.error });
   }
 
   const nowIso = new Date().toISOString();

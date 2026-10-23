@@ -2,6 +2,7 @@ import express from 'express';
 import { db, logEvent, createNotification } from '../database.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { createRequestAndAssignments } from '../services/allocationService.js';
+import { verifyHandoverCode } from './assignmentRoutes.js';
 
 const router = express.Router();
 
@@ -179,7 +180,8 @@ router.post('/:id/confirm-receipt', authenticate, requireRole('receiver'), (req,
 // POST /api/requests/:id/status (Rider status updates via requestId)
 router.post('/:id/status', authenticate, requireRole('rider'), (req, res) => {
   const { id } = req.params;
-  const { status, code } = req.body;
+  const { status, code, pickup_code, delivery_code } = req.body;
+  const inputCode = code || pickup_code || delivery_code;
 
   const assignment = db.prepare(`
     SELECT * FROM assignments
@@ -198,6 +200,12 @@ router.post('/:id/status', authenticate, requireRole('rider'), (req, res) => {
     return res.status(400).json({
       error: `Invalid status '${status}'. Must be one of [${validStatuses.join(', ')}].`
     });
+  }
+
+  // Verification code check for PICKED_UP and DELIVERED
+  const codeCheck = verifyHandoverCode(assignment, normalizedStatus, inputCode, req.user.id, req.user.name);
+  if (!codeCheck.ok) {
+    return res.status(codeCheck.status).json({ error: codeCheck.error });
   }
 
   const nowIso = new Date().toISOString();

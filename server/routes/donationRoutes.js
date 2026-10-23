@@ -322,6 +322,8 @@ router.get('/donor/dashboard-stats', authenticate, requireRole('donor'), (req, r
         receiverLng: reqItem.receiver_lng || 73.8567,
         currentLat: firstAssign?.current_lat || reqItem.pickup_lat || 18.5284,
         currentLng: firstAssign?.current_lng || reqItem.pickup_lng || 73.8425,
+        pickupCode: firstAssign?.pickup_code || null,
+        pickup_code: firstAssign?.pickup_code || null,
         redirectHistory,
         deliveryNotes: firstAssign?.redirect_reason ? `Rerouted: ${firstAssign.redirect_reason}` : ''
       };

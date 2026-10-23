@@ -117,12 +117,15 @@ export function createRequestAndAssignments({
         if (portion <= 0) continue;
 
         const assignmentId = `asgn-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+        const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
+        const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
+
         db.prepare(`
           INSERT INTO assignments (
             id, donation_id, request_id, rider_id, quantity, status,
-            destination_receiver_id, route_progress
-          ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, 0.0)
-        `).run(assignmentId, donationId, requestId, rider.id, portion, receiverId);
+            destination_receiver_id, route_progress, pickup_code, delivery_code
+          ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, 0.0, ?, ?)
+        `).run(assignmentId, donationId, requestId, rider.id, portion, receiverId, pickupCode, deliveryCode);
 
         remainingToAllocate -= portion;
         assignmentsCreated.push({
@@ -141,6 +144,27 @@ export function createRequestAndAssignments({
           { assignmentId, requestId, donationId }
         );
       }
+    }
+
+    // Unassigned remainder
+    if (remainingToAllocate > 0) {
+      const assignmentId = `asgn-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
+      const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
+
+      db.prepare(`
+        INSERT INTO assignments (
+          id, donation_id, request_id, rider_id, quantity, status,
+          destination_receiver_id, route_progress, pickup_code, delivery_code
+        ) VALUES (?, ?, ?, NULL, ?, 'PENDING', ?, 0.0, ?, ?)
+      `).run(assignmentId, donationId, requestId, remainingToAllocate, receiverId, pickupCode, deliveryCode);
+
+      assignmentsCreated.push({
+        id: assignmentId,
+        riderId: null,
+        riderName: null,
+        quantity: remainingToAllocate
+      });
     }
 
     // Update request status if assignments were offered
