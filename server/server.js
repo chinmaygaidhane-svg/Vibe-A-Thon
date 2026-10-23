@@ -83,11 +83,17 @@ app.set('io', io);
 
 // Mount API Routes
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
 app.use('/api/donations', donationRoutes);
+app.use('/donations', donationRoutes);
 app.use('/api/requests', requestRoutes);
+app.use('/requests', requestRoutes);
 app.use('/api/assignments', assignmentRoutes);
+app.use('/assignments', assignmentRoutes);
 app.use('/api/operations', operationsRoutes);
+app.use('/operations', operationsRoutes);
 app.use('/simulate', simulationRoutes);
+app.use('/api/simulation', simulationRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

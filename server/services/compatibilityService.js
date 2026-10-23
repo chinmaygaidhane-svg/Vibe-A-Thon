@@ -37,6 +37,12 @@ export function checkCompatibility({ donation, receiver, requestedQuantity = 0 }
   }
 
   // 5. Remaining demand check
+  if (receiver.current_demand !== undefined && receiver.current_demand <= 0) {
+    return {
+      isCompatible: false,
+      reason: 'No remaining demand: Shelter currently has zero open demand.'
+    };
+  }
   if (requestedQuantity > 0 && receiver.current_demand !== undefined && requestedQuantity > receiver.current_demand) {
     return {
       isCompatible: false,
@@ -44,7 +50,7 @@ export function checkCompatibility({ donation, receiver, requestedQuantity = 0 }
     };
   }
 
-  // 6. Operating hours check
+  // 6. Operating hours check (check estimated arrival time if provided, or current time)
   if (receiver.operating_hours && receiver.operating_hours.includes('-')) {
     try {
       const parts = receiver.operating_hours.split('-').map(s => s.trim());
@@ -53,16 +59,16 @@ export function checkCompatibility({ donation, receiver, requestedQuantity = 0 }
         const [startH, startM] = startStr.split(':').map(Number);
         const [endH, endM] = endStr.split(':').map(Number);
 
-        const currentLocal = new Date();
-        const currentMins = currentLocal.getHours() * 60 + currentLocal.getMinutes();
+        const checkTime = arguments[0]?.estimatedArrival ? new Date(arguments[0].estimatedArrival) : new Date();
+        const checkMins = checkTime.getHours() * 60 + checkTime.getMinutes();
         const startMins = startH * 60 + (startM || 0);
         const endMins = endH * 60 + (endM || 0);
 
         if (endMins > startMins) {
-          if (currentMins < startMins || currentMins > endMins) {
+          if (checkMins < startMins || checkMins > endMins) {
             return {
               isCompatible: false,
-              reason: `Outside operating hours: Shelter operates between ${receiver.operating_hours}. Current time is outside operating hours.`
+              reason: `Outside operating hours: Shelter operates between ${receiver.operating_hours}. Estimated arrival (${checkTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}) falls outside operating hours.`
             };
           }
         }

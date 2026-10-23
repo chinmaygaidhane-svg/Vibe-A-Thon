@@ -46,16 +46,30 @@ export function createRequestAndAssignments({
       throw new Error('Receiver profile not found.');
     }
 
-    // 3. Compatibility check
-    const compat = checkCompatibility({ donation, receiver, requestedQuantity });
+    // 3. Feasibility check (now + pickup_eta + delivery_eta + 5 <= safe_until)
+    const feas = checkFeasibility({ donation, receiver });
+    if (!feas.isFeasible) {
+      throw new Error(feas.reason || 'Donation cannot reach your facility in time before the safe-use deadline.');
+    }
+
+    // 4. Compatibility check (facilities, sanitation, operating hours at estimated arrival)
+    const compat = checkCompatibility({
+      donation,
+      receiver,
+      requestedQuantity,
+      estimatedArrival: feas.estimatedArrival
+    });
     if (!compat.isCompatible) {
       throw new Error(compat.reason);
     }
 
-    // 4. Feasibility check (pickup to receiver)
-    const feas = checkFeasibility({ donation, receiver });
-    if (!feas.isFeasible) {
-      throw new Error(feas.reason);
+    // 5. Check remaining category demand
+    const categoryDemand = db.prepare(`
+      SELECT * FROM receiver_demand
+      WHERE receiver_id = ? AND item_category = ?
+    `).get(receiverId, donation.category);
+    if (categoryDemand && categoryDemand.remaining_demand < requestedQuantity) {
+      throw new Error(`Requested quantity (${requestedQuantity}) exceeds shelter's remaining demand (${categoryDemand.remaining_demand}) for ${donation.category}.`);
     }
 
     // 5. Atomic quantity reserve

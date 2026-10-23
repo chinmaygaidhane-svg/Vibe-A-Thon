@@ -1,4 +1,6 @@
 import { db, logEvent } from '../database.js';
+import { checkFeasibility } from './feasibilityService.js';
+import { checkCompatibility } from './compatibilityService.js';
 
 let expiryAlertsLogged = new Set();
 
@@ -74,6 +76,44 @@ export function runExpiryCheck(io = null, now = Date.now()) {
         });
       }
     }
+  }
+
+  // Re-evaluate feasibility for all receivers for live donations
+  try {
+    const receivers = db.prepare('SELECT * FROM receiver_profiles').all();
+    const availableDonations = db.prepare(`
+      SELECT * FROM donations
+      WHERE status = 'AVAILABLE' AND available_quantity > 0 AND safe_until > datetime('now')
+    `).all();
+
+    for (const rec of receivers) {
+      for (const don of availableDonations) {
+        const feas = checkFeasibility({ donation: don, receiver: rec, now });
+        const compat = checkCompatibility({
+          donation: don,
+          receiver: rec,
+          requestedQuantity: 1,
+          estimatedArrival: feas.estimatedArrival
+        });
+
+        if (!feas.isFeasible || !compat.isCompatible) {
+          if (io) {
+            io.to(`user_${rec.user_id}`).emit('donation.hidden', {
+              donationId: don.id,
+              receiverId: rec.user_id,
+              reason: feas.reason || compat.reason || 'Donation cannot reach in time'
+            });
+            io.emit('donation.hidden', {
+              donationId: don.id,
+              receiverId: rec.user_id,
+              reason: feas.reason || compat.reason || 'Donation cannot reach in time'
+            });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error re-evaluating receiver feasibility:', err.message);
   }
 
   return updates;

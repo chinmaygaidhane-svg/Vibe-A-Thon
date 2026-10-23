@@ -147,4 +147,57 @@ console.log('Test 5: In-Transit Dynamic Redirection Tests');
   console.log('  ✓ In-transit dynamic redirection to alternative candidate verified');
 }
 
-console.log('\n🎉 ALL 5 CORE BUSINESS LOGIC TESTS PASSED SUCCESSFULLY!\n');
+// TEST 6: Feasibility-Filtered Receiver Feed & Fast-Forward Expiry Tests
+console.log('Test 6: Feasibility-Filtered Receiver Feed & Fast-Forward Tests');
+{
+  const now = Date.now();
+  // Donation expiring in 25 minutes
+  const tightDonation = {
+    id: 'test-tight-don',
+    safe_until: new Date(now + 25 * 60 * 1000).toISOString(),
+    pickup_lat: 18.5284,
+    pickup_lng: 73.8425,
+    category: 'cooked_meals',
+    requires_cooking: 0,
+    requires_clean_water: 0
+  };
+
+  // Near receiver (1 km away, ~2 min delivery + 10 min pickup + 5 min buffer = 17 min <= 25 min)
+  const nearReceiver = {
+    user_id: 'rec-near',
+    lat: 18.5300,
+    lng: 73.8450,
+    clean_water: 1,
+    cooking_facilities: 1,
+    current_demand: 40,
+    storage_capacity: 100,
+    operating_hours: '06:00 - 23:00'
+  };
+
+  // Far receiver (15 km away, ~36 min delivery + 10 min pickup + 5 min buffer = 51 min > 25 min)
+  const farReceiver = {
+    user_id: 'rec-far',
+    lat: 18.6500,
+    lng: 73.7500,
+    clean_water: 1,
+    cooking_facilities: 1,
+    current_demand: 40,
+    storage_capacity: 100,
+    operating_hours: '06:00 - 23:00'
+  };
+
+  const nearFeas = checkFeasibility({ donation: tightDonation, receiver: nearReceiver, now });
+  const farFeas = checkFeasibility({ donation: tightDonation, receiver: farReceiver, now });
+
+  assert.strictEqual(nearFeas.isFeasible, true, 'Near receiver should feasibly receive tight donation');
+  assert.strictEqual(farFeas.isFeasible, false, 'Far receiver must NOT see donation near its deadline');
+
+  // Now simulate time passing by 15 minutes
+  const laterNow = now + 15 * 60 * 1000;
+  const laterNearFeas = checkFeasibility({ donation: tightDonation, receiver: nearReceiver, now: laterNow });
+  assert.strictEqual(laterNearFeas.isFeasible, false, 'Near receiver must lose visibility after 15m time passes');
+
+  console.log('  ✓ Far receiver filtered out, near receiver sees donation, and donation disappears after time fast-forward');
+}
+
+console.log('\n🎉 ALL 6 CORE BUSINESS LOGIC TESTS PASSED SUCCESSFULLY!\n');

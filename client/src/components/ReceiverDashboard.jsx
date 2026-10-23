@@ -21,6 +21,7 @@ import {
   RefreshCw,
   Info
 } from 'lucide-react';
+import { EmptyState, DonationCard, Button, StatusPill, CountdownTimer } from '../ui';
 
 export default function ReceiverDashboard() {
   const { user, token } = useAuth();
@@ -57,7 +58,7 @@ export default function ReceiverDashboard() {
         sort: sortOption
       });
 
-      const res = await fetch(`/api/donations?${params}`, {
+      const res = await fetch(`/api/donations/available?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -116,11 +117,19 @@ export default function ReceiverDashboard() {
   // WebSocket updates
   useEffect(() => {
     if (lastMessage) {
+      if (lastMessage.event === 'donation.hidden') {
+        const hiddenId = lastMessage.data?.donationId;
+        const targetRec = lastMessage.data?.receiverId;
+        if (!targetRec || targetRec === user?.id) {
+          setDonations(prev => prev.filter(d => d.id !== hiddenId));
+          return;
+        }
+      }
       fetchDonations();
       fetchRequests();
       fetchNotifications();
     }
-  }, [lastMessage]);
+  }, [lastMessage, user]);
 
   const handleOpenRequestModal = (donation) => {
     setSelectedDonation(donation);
@@ -323,121 +332,26 @@ export default function ReceiverDashboard() {
             </div>
           </div>
 
-          {/* Cards Grid */}
-          <div className="donations-grid">
-            {donations.map(don => {
-              const remainingHours = Math.floor(don.remainingMinutes / 60);
-              const remainingMins = don.remainingMinutes % 60;
-              const timeDisplay = don.remainingMinutes > 60
-                ? `${remainingHours}h ${remainingMins}m`
-                : `${don.remainingMinutes}m`;
-
-              const isUrgent = don.remainingMinutes < 30;
-              const isWarning = don.remainingMinutes < 60;
-
-              return (
-                <div key={don.id} className="glass-panel donation-card">
-                  <div className="card-img-wrapper">
-                    <img src={don.imageUrl} alt={don.mealName} />
-                    <div className="card-badge">
-                      <span style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '2px',
-                        background: don.isVegetarian ? '#10b981' : '#f43f5e',
-                        display: 'inline-block'
-                      }} />
-                      {don.foodCategory.replace('_', ' ').toUpperCase()}
-                    </div>
-
-                    <div className={`card-time-badge ${isUrgent ? 'urgent' : isWarning ? 'warning' : 'safe'}`}>
-                      <Clock size={13} /> {don.isExpired ? 'EXPIRED' : `${timeDisplay} left`}
-                    </div>
-                  </div>
-
-                  <div className="card-body">
-                    <div>
-                      <span style={{ fontSize: '0.78rem', color: '#a5b4fc', fontWeight: 600 }}>
-                        🏪 {don.donorName} ({don.donorCategory})
-                      </span>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '2px 0 6px' }}>{don.mealName}</h3>
-                      <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                        {don.description}
-                      </p>
-                    </div>
-
-                    {/* Metadata: Distance, Handling, ETA */}
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                      background: 'rgba(255,255,255,0.03)',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      fontSize: '0.78rem'
-                    }}>
-                      <div className="card-meta-row">
-                        <span>📍 Approx Distance:</span>
-                        <strong style={{ color: 'var(--text-main)' }}>{don.distanceKm} km away</strong>
-                      </div>
-                      <div className="card-meta-row">
-                        <span>🛵 Estimated Delivery:</span>
-                        <strong style={{ color: '#60a5fa' }}>~{don.travelTimeMins} minutes</strong>
-                      </div>
-                      <div className="card-meta-row">
-                        <span>📦 Storage:</span>
-                        <span>{don.storageRequirements.replace('_', ' ')}</span>
-                      </div>
-                    </div>
-
-                    {/* Incompatibility / Unsafe Alert if any */}
-                    {!don.isFeasible && (
-                      <div style={{
-                        background: 'rgba(244, 63, 94, 0.15)',
-                        border: '1px solid rgba(244, 63, 94, 0.35)',
-                        borderRadius: '8px',
-                        padding: '8px 10px',
-                        fontSize: '0.76rem',
-                        color: '#fecdd3',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '6px'
-                      }}>
-                        <AlertTriangle size={14} style={{ color: '#f43f5e', flexShrink: 0, marginTop: '2px' }} />
-                        <span>{don.incompatibilityReason}</span>
-                      </div>
-                    )}
-
-                    {/* Footer Quantity & Request Button */}
-                    <div style={{
-                      marginTop: 'auto',
-                      paddingTop: '12px',
-                      borderTop: '1px solid rgba(255,255,255,0.08)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}>
-                      <div>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Available</span>
-                        <strong style={{ fontSize: '1.15rem', color: '#34d399' }}>{don.availableQuantity}</strong>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}> servings</span>
-                      </div>
-
-                      <button
-                        id={`btn-request-${don.id}`}
-                        onClick={() => handleOpenRequestModal(don)}
-                        disabled={!don.isFeasible || don.availableQuantity <= 0 || don.isExpired}
-                        className={`btn btn-sm ${don.isFeasible && don.availableQuantity > 0 && !don.isExpired ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ opacity: don.isFeasible && don.availableQuantity > 0 && !don.isExpired ? 1 : 0.5 }}
-                      >
-                        {don.isExpired ? 'Expired' : !don.isFeasible ? 'Incompatible' : '🛒 Order Food'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {/* Cards Grid: Feasible Donations Only */}
+          {donations.length === 0 ? (
+            <EmptyState
+              icon={Clock}
+              title="No Donations in Reach"
+              message="No donations can reach you in time right now. We'll notify you when one appears."
+            />
+          ) : (
+            <div className="donations-grid">
+              {donations.map(don => (
+                <DonationCard
+                  key={don.id}
+                  donation={don}
+                  role="receiver"
+                  actionLabel="🛒 Order Food"
+                  onAction={() => handleOpenRequestModal(don)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 

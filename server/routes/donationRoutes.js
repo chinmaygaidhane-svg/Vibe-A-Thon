@@ -6,6 +6,93 @@ import { checkCompatibility } from '../services/compatibilityService.js';
 
 const router = express.Router();
 
+// GET /donations/available & GET /api/donations/available
+// Receivers must see ONLY donations that can feasibly reach them before safe-use deadline.
+// Infeasible donations are filtered out on the server.
+router.get('/available', authenticate, requireRole('receiver'), (req, res) => {
+  try {
+    const receiverId = req.user.id;
+    const receiverProfile = db.prepare('SELECT * FROM receiver_profiles WHERE user_id = ?').get(receiverId);
+
+    if (!receiverProfile) {
+      return res.status(404).json({ error: 'Receiver profile not found.' });
+    }
+
+    // Check receiver demand records
+    const demandRecords = db.prepare('SELECT * FROM receiver_demand WHERE receiver_id = ?').all(receiverId);
+    const now = Date.now();
+
+    // Query active available donations
+    const rawDonations = db.prepare(`
+      SELECT d.*, u.name AS donor_name, dp.pickup_address
+      FROM donations d
+      JOIN users u ON d.donor_id = u.id
+      LEFT JOIN donor_profiles dp ON d.donor_id = dp.user_id
+      WHERE d.status = 'AVAILABLE'
+        AND d.available_quantity > 0
+        AND d.safe_until > datetime('now')
+    `).all();
+
+    const feasibleList = [];
+
+    for (const don of rawDonations) {
+      // 1. Feasibility check: now + pickup_eta + delivery_eta + 5 min safety buffer <= safe_until
+      const feas = checkFeasibility({ donation: don, receiver: receiverProfile, now });
+      if (!feas.isFeasible) continue;
+
+      // 2. Compatibility check (cooking, clean water, storage capacity, operating hours at estimated arrival)
+      const compat = checkCompatibility({
+        donation: don,
+        receiver: receiverProfile,
+        requestedQuantity: 1, // checking minimum viability
+        estimatedArrival: feas.estimatedArrival
+      });
+      if (!compat.isCompatible) continue;
+
+      // 3. Demand check: receiver has remaining demand for this item
+      // If demand records exist for this category, check remaining_demand > 0
+      const categoryDemand = demandRecords.find(d => d.item_category === don.category);
+      if (categoryDemand && categoryDemand.remaining_demand <= 0) {
+        continue;
+      }
+      if (receiverProfile.current_demand !== undefined && receiverProfile.current_demand <= 0) {
+        continue;
+      }
+
+      feasibleList.push({
+        ...don,
+        mealName: don.name,
+        imageUrl: don.image_url,
+        isVegetarian: don.veg_type === 'veg',
+        foodCategory: don.category,
+        totalQuantity: don.total_quantity,
+        availableQuantity: don.available_quantity,
+        reservedQuantity: don.reserved_quantity,
+        safeUseDeadline: don.safe_until,
+        pickupAddress: don.pickup_address || `${don.donor_name} Pickup Location`,
+        pickup_eta: feas.pickupEtaMins,
+        delivery_eta: feas.deliveryEtaMins,
+        pickupEtaMins: feas.pickupEtaMins,
+        deliveryEtaMins: feas.deliveryEtaMins,
+        estimated_arrival: feas.estimatedArrival,
+        estimatedArrival: feas.estimatedArrival,
+        remainingMinutes: feas.remainingMinutes,
+        distanceKm: feas.deliveryDistanceKm,
+        isFeasible: true,
+        isCompatible: true
+      });
+    }
+
+    // Sort by least time remaining first
+    feasibleList.sort((a, b) => a.remainingMinutes - b.remainingMinutes);
+
+    res.json({ donations: feasibleList });
+  } catch (err) {
+    console.error('Error in GET /donations/available:', err);
+    res.status(500).json({ error: 'Failed to fetch available donations.' });
+  }
+});
+
 // GET /api/donations
 // Receivers get feasibility & compatibility calculations tailored to their shelter
 // Riders get distance & ride ETA from their location

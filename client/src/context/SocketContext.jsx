@@ -59,6 +59,10 @@ export function SocketProvider({ children }) {
       setLastMessage({ event: 'rider.location_updated', data });
     });
 
+    socketInstance.on('donation.hidden', data => {
+      setLastMessage({ event: 'donation.hidden', data });
+    });
+
     socketInstance.on('delivery.redirected', data => {
       setLastMessage({ event: 'delivery.redirected', data });
       setActiveAlert({
