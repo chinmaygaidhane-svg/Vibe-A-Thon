@@ -97,6 +97,15 @@ router.get('/', authenticate, (req, res) => {
 
     return {
       ...don,
+      mealName: don.name,
+      imageUrl: don.image_url,
+      isVegetarian: don.veg_type === 'veg',
+      foodCategory: don.category,
+      totalQuantity: don.total_quantity,
+      availableQuantity: don.available_quantity,
+      reservedQuantity: don.reserved_quantity,
+      safeUseDeadline: don.safe_until,
+      pickupAddress: don.donor_name ? `${don.donor_name} Pickup Location` : 'Pickup Location',
       isExpired,
       remainingMinutes,
       isFeasible,
@@ -111,27 +120,166 @@ router.get('/', authenticate, (req, res) => {
   res.json({ donations: enriched });
 });
 
+// GET /api/donations/donor/dashboard-stats
+// Returns { stats, donations, activeRequests } for the logged-in donor
+router.get('/donor/dashboard-stats', authenticate, requireRole('donor'), (req, res) => {
+  try {
+    const donorId = req.user.id;
+
+    // Fetch all donations belonging to this donor
+    const rawDonations = db.prepare(`
+      SELECT d.*, u.name AS donor_name, dp.pickup_address
+      FROM donations d
+      JOIN users u ON d.donor_id = u.id
+      LEFT JOIN donor_profiles dp ON d.donor_id = dp.user_id
+      WHERE d.donor_id = ?
+      ORDER BY d.created_at DESC
+    `).all(donorId);
+
+    const now = Date.now();
+    let totalAvailableQuantity = 0;
+    let availableCount = 0;
+    let reservedCount = 0;
+    let expiryAlertsCount = 0;
+
+    const mappedDonations = rawDonations.map(d => {
+      const remainingMs = new Date(d.safe_until).getTime() - now;
+      const remainingMinutes = Math.max(0, Math.floor(remainingMs / (60 * 1000)));
+      const isExpired = remainingMs <= 0 || d.status === 'EXPIRED';
+
+      if (d.status === 'AVAILABLE' && d.available_quantity > 0) {
+        availableCount++;
+        totalAvailableQuantity += d.available_quantity;
+      }
+      if (d.status === 'RESERVED' || d.available_quantity < d.total_quantity) {
+        reservedCount++;
+      }
+      if (!isExpired && remainingMinutes < 45 && d.available_quantity > 0) {
+        expiryAlertsCount++;
+      }
+
+      return {
+        ...d,
+        mealName: d.name,
+        imageUrl: d.image_url,
+        isVegetarian: d.veg_type === 'veg',
+        foodCategory: d.category,
+        totalQuantity: d.total_quantity,
+        availableQuantity: d.available_quantity,
+        reservedQuantity: d.reserved_quantity,
+        safeUseDeadline: d.safe_until,
+        pickupAddress: d.pickup_address || 'FC Road, Shivaji Nagar, Pune',
+        isExpired,
+        remainingMinutes
+      };
+    });
+
+    // Fetch active requests / deliveries for this donor's donations
+    const activeReqRows = db.prepare(`
+      SELECT r.*, d.name AS meal_name, d.safe_until, d.pickup_lat, d.pickup_lng,
+             dp.pickup_address,
+             u_rec.name AS receiver_name, rp.address AS receiver_address,
+             rp.lat AS receiver_lat, rp.lng AS receiver_lng
+      FROM requests r
+      JOIN donations d ON r.donation_id = d.id
+      LEFT JOIN donor_profiles dp ON d.donor_id = dp.user_id
+      JOIN users u_rec ON r.receiver_id = u_rec.id
+      LEFT JOIN receiver_profiles rp ON r.receiver_id = rp.user_id
+      WHERE d.donor_id = ?
+      ORDER BY r.created_at DESC
+    `).all(donorId);
+
+    let pickupsInProgress = 0;
+    let completedDeliveries = 0;
+
+    const activeRequests = activeReqRows.map(reqItem => {
+      const assignments = db.prepare(`
+        SELECT a.*, u.name AS rider_name, u.phone AS rider_phone,
+               rp.vehicle_type, rp.max_capacity, rp.current_lat, rp.current_lng
+        FROM assignments a
+        LEFT JOIN users u ON a.rider_id = u.id
+        LEFT JOIN rider_profiles rp ON a.rider_id = rp.user_id
+        WHERE a.request_id = ?
+      `).all(reqItem.id);
+
+      const firstAssign = assignments[0];
+      const status = firstAssign?.status || reqItem.status;
+
+      if (['ASSIGNED', 'HEADING_TO_PICKUP', 'PICKED_UP', 'IN_TRANSIT'].includes(status)) {
+        pickupsInProgress++;
+      }
+      if (status === 'DELIVERED') {
+        completedDeliveries++;
+      }
+
+      let redirectHistory = [];
+      if (firstAssign?.redirect_reason) {
+        redirectHistory.push({ reason: firstAssign.redirect_reason });
+      }
+
+      return {
+        ...reqItem,
+        mealName: reqItem.meal_name,
+        quantityRequested: reqItem.requested_quantity,
+        assignedRiderId: firstAssign?.rider_id || null,
+        assignedRiderName: firstAssign?.rider_name || null,
+        riderVehicle: firstAssign?.vehicle_type || 'Two-Wheeler',
+        assignmentStatus: status,
+        pickupETA: 10,
+        deliveryETA: 15,
+        pickupAddress: reqItem.pickup_address || 'Pune Central',
+        receiverAddress: reqItem.receiver_address || 'Shelter Location',
+        pickupLat: reqItem.pickup_lat || 18.5284,
+        pickupLng: reqItem.pickup_lng || 73.8425,
+        receiverLat: reqItem.receiver_lat || 18.5204,
+        receiverLng: reqItem.receiver_lng || 73.8567,
+        currentLat: firstAssign?.current_lat || reqItem.pickup_lat || 18.5284,
+        currentLng: firstAssign?.current_lng || reqItem.pickup_lng || 73.8425,
+        redirectHistory,
+        deliveryNotes: firstAssign?.redirect_reason ? `Rerouted: ${firstAssign.redirect_reason}` : ''
+      };
+    });
+
+    const stats = {
+      totalCreated: mappedDonations.length,
+      totalAvailableQuantity,
+      availableDonations: availableCount,
+      reservedDonations: reservedCount,
+      pickupsInProgress,
+      completedDeliveries,
+      expiryAlertsCount
+    };
+
+    res.json({
+      stats,
+      donations: mappedDonations,
+      activeRequests
+    });
+  } catch (err) {
+    console.error('Error fetching donor stats:', err);
+    res.status(500).json({ error: 'Failed to fetch donor dashboard stats.' });
+  }
+});
+
 // POST /api/donations (Donor only: configurable safe_until, NEVER fixed duration)
 router.post('/', authenticate, requireRole('donor'), (req, res) => {
   try {
-    const {
-      name,
-      category = 'cooked_meals',
-      veg_type = 'veg',
-      description = '',
-      total_quantity,
-      unit = 'servings',
-      safe_until,
-      safe_use_hours,
-      storage_requirements = 'hot_insulated',
-      handling_instructions = '',
-      requires_cooking = false,
-      requires_clean_water = false,
-      item_type = 'cooked',
-      image_url,
-      pickup_lat,
-      pickup_lng
-    } = req.body;
+    const name = req.body.name || req.body.mealName;
+    const total_quantity = req.body.total_quantity || req.body.totalQuantity || req.body.servingsCount;
+    const category = req.body.category || req.body.foodCategory || 'cooked_meals';
+    const veg_type = req.body.veg_type || (req.body.isVegetarian === false ? 'non-veg' : 'veg');
+    const description = req.body.description || '';
+    const unit = req.body.unit || 'servings';
+    const safe_until = req.body.safe_until;
+    const safe_use_hours = req.body.safe_use_hours || req.body.safeUseHours;
+    const storage_requirements = req.body.storage_requirements || req.body.storageRequirements || 'hot_insulated';
+    const handling_instructions = req.body.handling_instructions || req.body.handlingInstructions || '';
+    const requires_cooking = req.body.requires_cooking || false;
+    const requires_clean_water = req.body.requires_clean_water || false;
+    const item_type = req.body.item_type || (category === 'cooked_meals' ? 'cooked' : 'packaged');
+    const image_url = req.body.image_url || req.body.imageUrl;
+    const pickup_lat = req.body.pickup_lat || req.body.pickupLat;
+    const pickup_lng = req.body.pickup_lng || req.body.pickupLng;
 
     if (!name || !total_quantity) {
       return res.status(400).json({ error: 'Name and total quantity are required.' });
@@ -196,17 +344,38 @@ router.post('/', authenticate, requireRole('donor'), (req, res) => {
       safeUntil: safeUntilDate.toISOString()
     });
 
-    const newDonation = db.prepare('SELECT * FROM donations WHERE id = ?').get(donationId);
+    const newDonation = db.prepare(`
+      SELECT d.*, u.name AS donor_name, dp.pickup_address
+      FROM donations d
+      JOIN users u ON d.donor_id = u.id
+      LEFT JOIN donor_profiles dp ON d.donor_id = dp.user_id
+      WHERE d.id = ?
+    `).get(donationId);
+
+    const mappedNewDonation = {
+      ...newDonation,
+      mealName: newDonation.name,
+      imageUrl: newDonation.image_url,
+      isVegetarian: newDonation.veg_type === 'veg',
+      foodCategory: newDonation.category,
+      totalQuantity: newDonation.total_quantity,
+      availableQuantity: newDonation.available_quantity,
+      reservedQuantity: newDonation.reserved_quantity,
+      safeUseDeadline: newDonation.safe_until,
+      pickupAddress: newDonation.pickup_address || 'FC Road, Shivaji Nagar, Pune',
+      isExpired: false,
+      remainingMinutes: Math.max(0, Math.floor((safeUntilDate.getTime() - Date.now()) / (60 * 1000)))
+    };
 
     // Socket.IO broadcast
     const io = req.app.get('io');
     if (io) {
-      io.emit('donation.created', { donation: newDonation });
+      io.emit('donation.created', { donation: mappedNewDonation });
     }
 
     return res.status(201).json({
       message: 'Donation successfully published to receiver and rider network!',
-      donation: newDonation
+      donation: mappedNewDonation
     });
   } catch (err) {
     console.error('Error creating donation:', err);

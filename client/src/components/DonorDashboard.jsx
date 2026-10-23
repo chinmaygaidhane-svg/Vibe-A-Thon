@@ -87,18 +87,54 @@ export default function DonorDashboard() {
   const handleCreateDonation = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        name: formData.mealName,
+        mealName: formData.mealName,
+        total_quantity: parseInt(formData.totalQuantity),
+        totalQuantity: parseInt(formData.totalQuantity),
+        servingsCount: parseInt(formData.totalQuantity),
+        category: formData.foodCategory,
+        foodCategory: formData.foodCategory,
+        veg_type: formData.isVegetarian ? 'veg' : 'non-veg',
+        isVegetarian: formData.isVegetarian,
+        safe_use_hours: parseFloat(formData.safeUseHours),
+        safeUseHours: parseFloat(formData.safeUseHours),
+        description: formData.description,
+        pickup_address: formData.pickupAddress,
+        pickupAddress: formData.pickupAddress,
+        storage_requirements: formData.storageRequirements,
+        storageRequirements: formData.storageRequirements,
+        handling_instructions: formData.handlingInstructions,
+        handlingInstructions: formData.handlingInstructions,
+        image_url: formData.imageUrl,
+        imageUrl: formData.imageUrl
+      };
+
       const res = await fetch('/api/donations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (res.ok) {
         addToast({ title: 'Donation Listed!', message: data.message, type: 'success' });
         setShowAddModal(false);
+        setFormData({
+          mealName: '',
+          foodCategory: 'cooked_meals',
+          isVegetarian: true,
+          totalQuantity: '50',
+          servingsCount: '50',
+          safeUseHours: '2.5',
+          description: '',
+          pickupAddress: user?.pickupAddress || 'FC Road, Shivaji Nagar, Pune',
+          storageRequirements: 'hot_insulated',
+          handlingInstructions: 'Keep in insulated containers above 60°C.',
+          imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80'
+        });
         fetchData();
       } else {
         alert(data.error || 'Failed to create donation');

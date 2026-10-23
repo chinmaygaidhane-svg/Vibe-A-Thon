@@ -46,6 +46,7 @@ router.get('/', authenticate, (req, res) => {
            d.storage_requirements, d.donor_id,
            u_donor.name AS donor_name, dp.pickup_address,
            u_rec.name AS receiver_name, rp.address AS receiver_address,
+           rp.lat AS receiver_lat, rp.lng AS receiver_lng,
            rp.storage_capacity, rp.cooking_facilities, rp.clean_water
     FROM requests r
     JOIN donations d ON r.donation_id = d.id
@@ -84,13 +85,37 @@ router.get('/', authenticate, (req, res) => {
       WHERE a.request_id = ?
     `).all(reqItem.id);
 
+    const firstAssign = assignments[0];
+    const status = firstAssign?.status || reqItem.status;
+
+    let redirectHistory = [];
+    if (firstAssign?.redirect_reason) {
+      redirectHistory.push({ reason: firstAssign.redirect_reason });
+    }
+
     return {
       ...reqItem,
+      donationId: reqItem.donation_id,
+      mealName: reqItem.meal_name,
+      quantityRequested: reqItem.requested_quantity,
+      receiverAddress: reqItem.receiver_address || 'Shelter Location',
+      receiverLat: reqItem.receiver_lat || 18.5204,
+      receiverLng: reqItem.receiver_lng || 73.8567,
+      pickupAddress: reqItem.pickup_address || 'Donor Location',
+      pickupLat: reqItem.pickup_lat || 18.5284,
+      pickupLng: reqItem.pickup_lng || 73.8425,
+      currentLat: firstAssign?.current_lat || reqItem.pickup_lat || 18.5284,
+      currentLng: firstAssign?.current_lng || reqItem.pickup_lng || 73.8425,
+      pickupETA: 10,
+      deliveryETA: 15,
+      riderVehicle: firstAssign?.vehicle_type || 'Two-Wheeler',
       assignments,
-      assignedRiderId: assignments[0]?.rider_id || null,
-      assignedRiderName: assignments[0]?.rider_name || null,
-      assignmentStatus: assignments[0]?.status || reqItem.status,
-      routeProgress: assignments[0]?.route_progress || 0.0
+      assignedRiderId: firstAssign?.rider_id || null,
+      assignedRiderName: firstAssign?.rider_name || null,
+      assignmentStatus: status,
+      routeProgress: firstAssign?.route_progress || 0.0,
+      redirectHistory,
+      deliveryNotes: firstAssign?.redirect_reason ? `Rerouted: ${firstAssign.redirect_reason}` : ''
     };
   });
 

@@ -118,8 +118,8 @@
       "preferredArea": "Central Pune (Shivaji Nagar, FC Road, Camp)",
       "availability": "AVAILABLE",
       "locationSharing": true,
-      "currentLat": 18.524,
-      "currentLng": 73.848,
+      "currentLat": 18.51904,
+      "currentLng": 73.86623,
       "createdAt": "2026-10-22T07:45:04.303Z"
     },
     {
@@ -137,9 +137,110 @@
       "currentLat": 18.512,
       "currentLng": 73.82,
       "createdAt": "2026-10-22T07:45:04.303Z"
+    },
+    {
+      "id": "u-donor-1792742784326",
+      "role": "donor",
+      "email": "armygamerzyt@gmail.com",
+      "password": "$2a$10$XE3XkFErv2b69/6BYBMumu1JhMRpgS4KrIaZDXaar6p.P4EPJBDxm",
+      "name": "not",
+      "phone": "+918446584128",
+      "createdAt": "2026-10-23T08:06:24.326Z",
+      "donorCategory": "Restaurant",
+      "pickupAddress": "FC Road, Shivaji Nagar, Pune",
+      "lat": 18.5204,
+      "lng": 73.8567
+    },
+    {
+      "id": "u-donor-1792743188693",
+      "role": "donor",
+      "email": "chinmaygaidhane@gmail.com",
+      "password": "$2a$10$EEzLrqwf5WkYSNDEOQslne7IXqxTCNyjLo6mdiA8KKLrmFBqmSSIK",
+      "name": "qwer",
+      "phone": "+918446584128",
+      "createdAt": "2026-10-23T08:13:08.693Z",
+      "donorCategory": "Restaurant",
+      "pickupAddress": "FC Road, Shivaji Nagar, Pune",
+      "lat": 18.5204,
+      "lng": 73.8567
     }
   ],
   "donations": [
+    {
+      "id": "don-1792743209129",
+      "donorId": "u-donor-1792743188693",
+      "donorName": "qwer",
+      "donorCategory": "Restaurant",
+      "mealName": "vadapav",
+      "foodCategory": "cooked_meals",
+      "isVegetarian": true,
+      "description": "Nutritious surplus meal packed hygienically.",
+      "totalQuantity": 50,
+      "availableQuantity": 50,
+      "reservedQuantity": 0,
+      "deliveredQuantity": 0,
+      "servingsCount": 50,
+      "preparedAt": "2026-10-23T08:13:29.129Z",
+      "createdAt": "2026-10-23T08:13:29.129Z",
+      "safeUseDeadline": "2026-10-23T10:43:29.129Z",
+      "pickupAddress": "FC Road, Shivaji Nagar, Pune",
+      "pickupLat": 18.5204,
+      "pickupLng": 73.8567,
+      "storageRequirements": "hot_insulated",
+      "handlingInstructions": "Keep in insulated containers above 60°C.",
+      "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80",
+      "status": "AVAILABLE"
+    },
+    {
+      "id": "don-1792742823078",
+      "donorId": "u-donor-1",
+      "donorName": "ABC Restaurant",
+      "donorCategory": "Restaurant",
+      "mealName": "vadapav",
+      "foodCategory": "cooked_meals",
+      "isVegetarian": true,
+      "description": "Nutritious surplus meal packed hygienically.",
+      "totalQuantity": 5,
+      "availableQuantity": 5,
+      "reservedQuantity": 0,
+      "deliveredQuantity": 0,
+      "servingsCount": 5,
+      "preparedAt": "2026-10-23T08:07:03.078Z",
+      "createdAt": "2026-10-23T08:07:03.078Z",
+      "safeUseDeadline": "2026-10-23T10:37:03.078Z",
+      "pickupAddress": "FC Road, Shivaji Nagar, Pune, Maharashtra",
+      "pickupLat": 18.5284,
+      "pickupLng": 73.8425,
+      "storageRequirements": "hot_insulated",
+      "handlingInstructions": "Keep in insulated containers above 60°C.",
+      "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80",
+      "status": "AVAILABLE"
+    },
+    {
+      "id": "don-1792742507250",
+      "donorId": "u-donor-1",
+      "donorName": "ABC Restaurant",
+      "donorCategory": "Restaurant",
+      "mealName": "biryani",
+      "foodCategory": "cooked_meals",
+      "isVegetarian": true,
+      "description": "Nutritious surplus meal packed hygienically.",
+      "totalQuantity": 30,
+      "availableQuantity": 0,
+      "reservedQuantity": 0,
+      "deliveredQuantity": 30,
+      "servingsCount": 30,
+      "preparedAt": "2026-10-23T08:01:47.250Z",
+      "createdAt": "2026-10-23T08:01:47.250Z",
+      "safeUseDeadline": "2026-10-23T10:31:47.250Z",
+      "pickupAddress": "FC Road, Shivaji Nagar, Pune, Maharashtra",
+      "pickupLat": 18.5284,
+      "pickupLng": 73.8425,
+      "storageRequirements": "hot_insulated",
+      "handlingInstructions": "Keep in insulated containers above 60°C.",
+      "imageUrl": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80",
+      "status": "DELIVERED"
+    },
     {
       "id": "don-1",
       "donorId": "u-donor-1",
@@ -150,9 +251,9 @@
       "isVegetarian": true,
       "description": "Freshly prepared aromatic basmati rice with mixed vegetables, paneer cubes, and mild spices. Packed in insulated food-grade containers.",
       "totalQuantity": 100,
-      "availableQuantity": 100,
-      "reservedQuantity": 0,
-      "deliveredQuantity": 0,
+      "availableQuantity": 30,
+      "reservedQuantity": 35,
+      "deliveredQuantity": 35,
       "servingsCount": 100,
       "preparedAt": "2026-10-23T07:15:04.303Z",
       "createdAt": "2026-10-23T07:20:04.303Z",
@@ -163,7 +264,7 @@
       "storageRequirements": "hot_insulated",
       "handlingInstructions": "Keep in insulated boxes above 60°C. Transport with care.",
       "imageUrl": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&auto=format&fit=crop&q=80",
-      "status": "AVAILABLE"
+      "status": "PICKED_UP"
     },
     {
       "id": "don-2",
@@ -238,8 +339,341 @@
       "status": "AVAILABLE"
     }
   ],
-  "requests": [],
+  "requests": [
+    {
+      "id": "req-1792743272233",
+      "donationId": "don-1",
+      "mealName": "Vegetable Pulao",
+      "foodCategory": "cooked_meals",
+      "donorId": "u-donor-1",
+      "donorName": "ABC Restaurant",
+      "pickupAddress": "FC Road, Shivaji Nagar, Pune",
+      "pickupLat": 18.5284,
+      "pickupLng": 73.8425,
+      "receiverId": "u-receiver-2",
+      "receiverName": "Shelter B - Sunshine Community Kitchen",
+      "receiverAddress": "Camp, MG Road, Pune, Maharashtra",
+      "receiverLat": 18.514,
+      "receiverLng": 73.879,
+      "quantityRequested": 35,
+      "safeUseDeadline": "2026-10-23T10:15:04.303Z",
+      "distanceKm": 4.17,
+      "pickupETA": 8,
+      "deliveryETA": 5,
+      "status": "IN_TRANSIT",
+      "assignmentStatus": "IN_TRANSIT",
+      "assignedRiderId": "u-rider-1",
+      "assignedRiderName": "Rider Rahul",
+      "riderVehicle": "Two-Wheeler (Motorbike)",
+      "currentRiderLat": 18.51904,
+      "currentRiderLng": 73.86623,
+      "simulationStep": 65,
+      "reservedExpiresAt": "2026-10-23T08:29:32.232Z",
+      "requestedAt": "2026-10-23T08:14:32.233Z",
+      "receiptConfirmed": false,
+      "discrepancyReport": null,
+      "redirectHistory": []
+    },
+    {
+      "id": "req-1792742561738",
+      "donationId": "don-1792742507250",
+      "mealName": "biryani",
+      "foodCategory": "cooked_meals",
+      "donorId": "u-donor-1",
+      "donorName": "ABC Restaurant",
+      "pickupAddress": "FC Road, Shivaji Nagar, Pune, Maharashtra",
+      "pickupLat": 18.5284,
+      "pickupLng": 73.8425,
+      "receiverId": "u-receiver-1",
+      "receiverName": "Shelter A - Hope Haven",
+      "receiverAddress": "Koregaon Park, Pune, Maharashtra",
+      "receiverLat": 18.5362,
+      "receiverLng": 73.894,
+      "quantityRequested": 30,
+      "safeUseDeadline": "2026-10-23T10:31:47.250Z",
+      "distanceKm": 5.5,
+      "pickupETA": 8,
+      "deliveryETA": 16,
+      "status": "DELIVERED",
+      "assignmentStatus": "DELIVERED",
+      "assignedRiderId": "u-rider-1",
+      "assignedRiderName": "Rider Rahul",
+      "riderVehicle": "Two-Wheeler (Motorbike)",
+      "currentRiderLat": 18.5362,
+      "currentRiderLng": 73.894,
+      "simulationStep": 100,
+      "reservedExpiresAt": "2026-10-23T08:17:41.737Z",
+      "requestedAt": "2026-10-23T08:02:41.738Z",
+      "receiptConfirmed": false,
+      "discrepancyReport": null,
+      "redirectHistory": []
+    },
+    {
+      "id": "req-1792742522495",
+      "donationId": "don-1",
+      "mealName": "Vegetable Pulao",
+      "foodCategory": "cooked_meals",
+      "donorId": "u-donor-1",
+      "donorName": "ABC Restaurant",
+      "pickupAddress": "FC Road, Shivaji Nagar, Pune",
+      "pickupLat": 18.5284,
+      "pickupLng": 73.8425,
+      "receiverId": "u-receiver-1",
+      "receiverName": "Shelter A - Hope Haven",
+      "receiverAddress": "Koregaon Park, Pune, Maharashtra",
+      "receiverLat": 18.5362,
+      "receiverLng": 73.894,
+      "quantityRequested": 35,
+      "safeUseDeadline": "2026-10-23T10:15:04.303Z",
+      "distanceKm": 5.5,
+      "pickupETA": 8,
+      "deliveryETA": 1,
+      "status": "DELIVERED",
+      "assignmentStatus": "DELIVERED",
+      "assignedRiderId": "u-rider-1",
+      "assignedRiderName": "Rider Rahul",
+      "riderVehicle": "Two-Wheeler (Motorbike)",
+      "currentRiderLat": 18.5362,
+      "currentRiderLng": 73.894,
+      "simulationStep": 100,
+      "reservedExpiresAt": "2026-10-23T08:17:02.494Z",
+      "requestedAt": "2026-10-23T08:02:02.495Z",
+      "receiptConfirmed": false,
+      "discrepancyReport": null,
+      "redirectHistory": []
+    }
+  ],
   "notifications": [
+    {
+      "id": "notif-1792743288523-yffiw",
+      "timestamp": "2026-10-23T08:14:48.523Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "u-receiver-2",
+      "type": "IN_TRANSIT",
+      "title": "Delivery In Transit!",
+      "message": "Rider Rahul is driving towards your location with the food."
+    },
+    {
+      "id": "notif-1792743280365-hau47",
+      "timestamp": "2026-10-23T08:14:40.365Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "u-receiver-2",
+      "type": "PICKUP_CONFIRMED",
+      "title": "Meal Collected from Donor!",
+      "message": "Rider Rahul picked up your meal from ABC Restaurant. Ready for transit."
+    },
+    {
+      "id": "notif-1792743280364-rcylm",
+      "timestamp": "2026-10-23T08:14:40.364Z",
+      "read": false,
+      "role": "donor",
+      "userId": "u-donor-1",
+      "type": "PICKUP_CONFIRMED",
+      "title": "Meal Picked Up!",
+      "message": "Rider Rahul has collected the Vegetable Pulao."
+    },
+    {
+      "id": "notif-1792743272241-bxljs",
+      "timestamp": "2026-10-23T08:14:32.241Z",
+      "read": false,
+      "role": "rider",
+      "userId": "u-rider-1",
+      "type": "ASSIGNMENT_OFFERED",
+      "title": "New Delivery Assignment Available!",
+      "message": "Pickup 35 servings of Vegetable Pulao from ABC Restaurant for Shelter B - Sunshine Community Kitchen."
+    },
+    {
+      "id": "notif-1792743272237-z3gsx",
+      "timestamp": "2026-10-23T08:14:32.237Z",
+      "read": false,
+      "role": "donor",
+      "userId": "u-donor-1",
+      "type": "DONATION_REQUESTED",
+      "title": "New Meal Request Received!",
+      "message": "Shelter B - Sunshine Community Kitchen has requested 35 servings of Vegetable Pulao."
+    },
+    {
+      "id": "notif-1792743209133-npkbn",
+      "timestamp": "2026-10-23T08:13:29.133Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "all",
+      "type": "NEW_DONATION",
+      "title": "New Food Donation Available!",
+      "message": "qwer posted 50 servings of vadapav. Check your feed!"
+    },
+    {
+      "id": "notif-1792742823080-nfe0x",
+      "timestamp": "2026-10-23T08:07:03.080Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "all",
+      "type": "NEW_DONATION",
+      "title": "New Food Donation Available!",
+      "message": "ABC Restaurant posted 5 servings of vadapav. Check your feed!"
+    },
+    {
+      "id": "notif-1792742592612-miaoc",
+      "timestamp": "2026-10-23T08:03:12.612Z",
+      "read": false,
+      "role": "donor",
+      "userId": "u-donor-1",
+      "type": "DELIVERY_COMPLETED",
+      "title": "Donation Successfully Delivered!",
+      "message": "Your donation of 35 servings reached Shelter A - Hope Haven."
+    },
+    {
+      "id": "notif-1792742592611-qcpqj",
+      "timestamp": "2026-10-23T08:03:12.611Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "u-receiver-1",
+      "type": "DELIVERED",
+      "title": "Donation Delivered!",
+      "message": "Rider Rahul has arrived at your destination with 35 servings of Vegetable Pulao. Please confirm receipt."
+    },
+    {
+      "id": "notif-1792742590459-tt9hl",
+      "timestamp": "2026-10-23T08:03:10.459Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "u-receiver-1",
+      "type": "RIDER_NEARBY",
+      "title": "Rider is Approaching!",
+      "message": "Rider Rahul is less than 3 minutes away with Vegetable Pulao."
+    },
+    {
+      "id": "notif-1792742586139-fejkk",
+      "timestamp": "2026-10-23T08:03:06.139Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "u-receiver-1",
+      "type": "IN_TRANSIT",
+      "title": "Delivery In Transit!",
+      "message": "Rider Rahul is driving towards your location with the food."
+    },
+    {
+      "id": "notif-1792742582200-yjw69",
+      "timestamp": "2026-10-23T08:03:02.200Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "u-receiver-1",
+      "type": "PICKUP_CONFIRMED",
+      "title": "Meal Collected from Donor!",
+      "message": "Rider Rahul picked up your meal from ABC Restaurant. Ready for transit."
+    },
+    {
+      "id": "notif-1792742582199-t46wf",
+      "timestamp": "2026-10-23T08:03:02.199Z",
+      "read": false,
+      "role": "donor",
+      "userId": "u-donor-1",
+      "type": "PICKUP_CONFIRMED",
+      "title": "Meal Picked Up!",
+      "message": "Rider Rahul has collected the Vegetable Pulao."
+    },
+    {
+      "id": "notif-1792742578685-hdtkc",
+      "timestamp": "2026-10-23T08:02:58.685Z",
+      "read": false,
+      "role": "donor",
+      "userId": "u-donor-1",
+      "type": "DELIVERY_COMPLETED",
+      "title": "Donation Successfully Delivered!",
+      "message": "Your donation of 30 servings reached Shelter A - Hope Haven."
+    },
+    {
+      "id": "notif-1792742578684-dkljp",
+      "timestamp": "2026-10-23T08:02:58.684Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "u-receiver-1",
+      "type": "DELIVERED",
+      "title": "Donation Delivered!",
+      "message": "Rider Rahul has arrived at your destination with 30 servings of biryani. Please confirm receipt."
+    },
+    {
+      "id": "notif-1792742575105-62r88",
+      "timestamp": "2026-10-23T08:02:55.105Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "u-receiver-1",
+      "type": "IN_TRANSIT",
+      "title": "Delivery In Transit!",
+      "message": "Rider Rahul is driving towards your location with the food."
+    },
+    {
+      "id": "notif-1792742571653-67pcc",
+      "timestamp": "2026-10-23T08:02:51.653Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "u-receiver-1",
+      "type": "PICKUP_CONFIRMED",
+      "title": "Meal Collected from Donor!",
+      "message": "Rider Rahul picked up your meal from ABC Restaurant. Ready for transit."
+    },
+    {
+      "id": "notif-1792742571652-hvl5k",
+      "timestamp": "2026-10-23T08:02:51.652Z",
+      "read": false,
+      "role": "donor",
+      "userId": "u-donor-1",
+      "type": "PICKUP_CONFIRMED",
+      "title": "Meal Picked Up!",
+      "message": "Rider Rahul has collected the biryani."
+    },
+    {
+      "id": "notif-1792742561741-ljjrn",
+      "timestamp": "2026-10-23T08:02:41.741Z",
+      "read": false,
+      "role": "rider",
+      "userId": "u-rider-1",
+      "type": "ASSIGNMENT_OFFERED",
+      "title": "New Delivery Assignment Available!",
+      "message": "Pickup 30 servings of biryani from ABC Restaurant for Shelter A - Hope Haven."
+    },
+    {
+      "id": "notif-1792742561740-x3twh",
+      "timestamp": "2026-10-23T08:02:41.740Z",
+      "read": false,
+      "role": "donor",
+      "userId": "u-donor-1",
+      "type": "DONATION_REQUESTED",
+      "title": "New Meal Request Received!",
+      "message": "Shelter A - Hope Haven has requested 30 servings of biryani."
+    },
+    {
+      "id": "notif-1792742522499-7q718",
+      "timestamp": "2026-10-23T08:02:02.499Z",
+      "read": false,
+      "role": "rider",
+      "userId": "u-rider-1",
+      "type": "ASSIGNMENT_OFFERED",
+      "title": "New Delivery Assignment Available!",
+      "message": "Pickup 35 servings of Vegetable Pulao from ABC Restaurant for Shelter A - Hope Haven."
+    },
+    {
+      "id": "notif-1792742522497-dmkfd",
+      "timestamp": "2026-10-23T08:02:02.497Z",
+      "read": false,
+      "role": "donor",
+      "userId": "u-donor-1",
+      "type": "DONATION_REQUESTED",
+      "title": "New Meal Request Received!",
+      "message": "Shelter A - Hope Haven has requested 35 servings of Vegetable Pulao."
+    },
+    {
+      "id": "notif-1792742507256-dbrly",
+      "timestamp": "2026-10-23T08:01:47.256Z",
+      "read": false,
+      "role": "receiver",
+      "userId": "all",
+      "type": "NEW_DONATION",
+      "title": "New Food Donation Available!",
+      "message": "ABC Restaurant posted 30 servings of biryani. Check your feed!"
+    },
     {
       "id": "notif-welcome-1",
       "userId": "u-donor-1",
@@ -262,6 +696,221 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1792743291051-k6yz",
+      "timestamp": "2026-10-23T08:14:51.051Z",
+      "eventType": "RIDER_SIMULATION_ADVANCED",
+      "description": "Rider advanced to 65% along route for Request #req-1792743272233",
+      "metadata": {
+        "requestId": "req-1792743272233",
+        "step": 65,
+        "lat": 18.51904,
+        "lng": 73.86623
+      }
+    },
+    {
+      "id": "log-1792743288525-7iia",
+      "timestamp": "2026-10-23T08:14:48.525Z",
+      "eventType": "DELIVERY_STATUS_CHANGED",
+      "description": "Request #req-1792743272233 status changed to IN_TRANSIT by Rider Rahul",
+      "metadata": {
+        "requestId": "req-1792743272233",
+        "newStatus": "IN_TRANSIT"
+      }
+    },
+    {
+      "id": "log-1792743280369-ehk5",
+      "timestamp": "2026-10-23T08:14:40.369Z",
+      "eventType": "DELIVERY_STATUS_CHANGED",
+      "description": "Request #req-1792743272233 status changed to PICKED_UP by Rider Rahul",
+      "metadata": {
+        "requestId": "req-1792743272233",
+        "newStatus": "PICKED_UP"
+      }
+    },
+    {
+      "id": "log-1792743272235-jmsp",
+      "timestamp": "2026-10-23T08:14:32.235Z",
+      "eventType": "REQUEST_CREATED",
+      "description": "Shelter B - Sunshine Community Kitchen requested 35 servings of Vegetable Pulao from ABC Restaurant",
+      "metadata": {
+        "requestId": "req-1792743272233",
+        "assignedRider": "Rider Rahul"
+      }
+    },
+    {
+      "id": "log-1792743218515-2bvv",
+      "timestamp": "2026-10-23T08:13:38.515Z",
+      "eventType": "USER_LOGIN",
+      "description": "Shelter A - Hope Haven logged in as receiver",
+      "metadata": {
+        "userId": "u-receiver-1"
+      }
+    },
+    {
+      "id": "log-1792743209132-w93h",
+      "timestamp": "2026-10-23T08:13:29.132Z",
+      "eventType": "DONATION_CREATED",
+      "description": "qwer created donation: vadapav (50 servings)",
+      "metadata": {
+        "donationId": "don-1792743209129",
+        "deadline": "2026-10-23T10:43:29.129Z"
+      }
+    },
+    {
+      "id": "log-1792743188694-ogy1",
+      "timestamp": "2026-10-23T08:13:08.694Z",
+      "eventType": "USER_REGISTERED",
+      "description": "New donor registered: qwer (chinmaygaidhane@gmail.com)",
+      "metadata": {
+        "userId": "u-donor-1792743188693",
+        "role": "donor"
+      }
+    },
+    {
+      "id": "log-1792742823079-j723",
+      "timestamp": "2026-10-23T08:07:03.079Z",
+      "eventType": "DONATION_CREATED",
+      "description": "ABC Restaurant created donation: vadapav (5 servings)",
+      "metadata": {
+        "donationId": "don-1792742823078",
+        "deadline": "2026-10-23T10:37:03.078Z"
+      }
+    },
+    {
+      "id": "log-1792742784328-pg7f",
+      "timestamp": "2026-10-23T08:06:24.328Z",
+      "eventType": "USER_REGISTERED",
+      "description": "New donor registered: not (armygamerzyt@gmail.com)",
+      "metadata": {
+        "userId": "u-donor-1792742784326",
+        "role": "donor"
+      }
+    },
+    {
+      "id": "log-1792742592614-aqxd",
+      "timestamp": "2026-10-23T08:03:12.614Z",
+      "eventType": "DELIVERY_STATUS_CHANGED",
+      "description": "Request #req-1792742522495 status changed to DELIVERED by Rider Rahul",
+      "metadata": {
+        "requestId": "req-1792742522495",
+        "newStatus": "DELIVERED"
+      }
+    },
+    {
+      "id": "log-1792742590463-ihkf",
+      "timestamp": "2026-10-23T08:03:10.463Z",
+      "eventType": "RIDER_SIMULATION_ADVANCED",
+      "description": "Rider advanced to 90% along route for Request #req-1792742522495",
+      "metadata": {
+        "requestId": "req-1792742522495",
+        "step": 90,
+        "lat": 18.53542,
+        "lng": 73.88885
+      }
+    },
+    {
+      "id": "log-1792742588648-v3j0",
+      "timestamp": "2026-10-23T08:03:08.648Z",
+      "eventType": "RIDER_SIMULATION_ADVANCED",
+      "description": "Rider advanced to 65% along route for Request #req-1792742522495",
+      "metadata": {
+        "requestId": "req-1792742522495",
+        "step": 65,
+        "lat": 18.53347,
+        "lng": 73.87598
+      }
+    },
+    {
+      "id": "log-1792742586143-tzka",
+      "timestamp": "2026-10-23T08:03:06.143Z",
+      "eventType": "DELIVERY_STATUS_CHANGED",
+      "description": "Request #req-1792742522495 status changed to IN_TRANSIT by Rider Rahul",
+      "metadata": {
+        "requestId": "req-1792742522495",
+        "newStatus": "IN_TRANSIT"
+      }
+    },
+    {
+      "id": "log-1792742582202-hrdc",
+      "timestamp": "2026-10-23T08:03:02.202Z",
+      "eventType": "DELIVERY_STATUS_CHANGED",
+      "description": "Request #req-1792742522495 status changed to PICKED_UP by Rider Rahul",
+      "metadata": {
+        "requestId": "req-1792742522495",
+        "newStatus": "PICKED_UP"
+      }
+    },
+    {
+      "id": "log-1792742581252-4ljt",
+      "timestamp": "2026-10-23T08:03:01.252Z",
+      "eventType": "DELIVERY_STATUS_CHANGED",
+      "description": "Request #req-1792742522495 status changed to RIDER_GOING_TO_PICKUP by Rider Rahul",
+      "metadata": {
+        "requestId": "req-1792742522495",
+        "newStatus": "RIDER_GOING_TO_PICKUP"
+      }
+    },
+    {
+      "id": "log-1792742578687-q9mu",
+      "timestamp": "2026-10-23T08:02:58.687Z",
+      "eventType": "DELIVERY_STATUS_CHANGED",
+      "description": "Request #req-1792742561738 status changed to DELIVERED by Rider Rahul",
+      "metadata": {
+        "requestId": "req-1792742561738",
+        "newStatus": "DELIVERED"
+      }
+    },
+    {
+      "id": "log-1792742575109-shuq",
+      "timestamp": "2026-10-23T08:02:55.109Z",
+      "eventType": "DELIVERY_STATUS_CHANGED",
+      "description": "Request #req-1792742561738 status changed to IN_TRANSIT by Rider Rahul",
+      "metadata": {
+        "requestId": "req-1792742561738",
+        "newStatus": "IN_TRANSIT"
+      }
+    },
+    {
+      "id": "log-1792742571654-aj52",
+      "timestamp": "2026-10-23T08:02:51.654Z",
+      "eventType": "DELIVERY_STATUS_CHANGED",
+      "description": "Request #req-1792742561738 status changed to PICKED_UP by Rider Rahul",
+      "metadata": {
+        "requestId": "req-1792742561738",
+        "newStatus": "PICKED_UP"
+      }
+    },
+    {
+      "id": "log-1792742561739-elt3",
+      "timestamp": "2026-10-23T08:02:41.739Z",
+      "eventType": "REQUEST_CREATED",
+      "description": "Shelter A - Hope Haven requested 30 servings of biryani from ABC Restaurant",
+      "metadata": {
+        "requestId": "req-1792742561738",
+        "assignedRider": "Rider Rahul"
+      }
+    },
+    {
+      "id": "log-1792742522496-ottj",
+      "timestamp": "2026-10-23T08:02:02.496Z",
+      "eventType": "REQUEST_CREATED",
+      "description": "Shelter A - Hope Haven requested 35 servings of Vegetable Pulao from ABC Restaurant",
+      "metadata": {
+        "requestId": "req-1792742522495",
+        "assignedRider": "Rider Rahul"
+      }
+    },
+    {
+      "id": "log-1792742507253-dwm4",
+      "timestamp": "2026-10-23T08:01:47.253Z",
+      "eventType": "DONATION_CREATED",
+      "description": "ABC Restaurant created donation: biryani (30 servings)",
+      "metadata": {
+        "donationId": "don-1792742507250",
+        "deadline": "2026-10-23T10:31:47.250Z"
+      }
+    },
     {
       "id": "log-init",
       "timestamp": "2026-10-23T07:35:04.303Z",
